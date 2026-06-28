@@ -40,14 +40,14 @@ class Game:
         
         # Load tiled background
         self.bg_tile = self.assets_manager.load_background_tile(self.level.background_name)
-        if self.bg_tile.get_width() > 128:
-            # Scale large landscape backgrounds to fit screen height nicely (1000x800)
-            self.bg_tile = pygame.transform.scale(self.bg_tile, (1000, 800))
+        # Always scale the background tile to cover the full window size (1000x800)
+        # to prevent performance drops (low FPS) and resolve tiled background clutter.
+        self.bg_tile = pygame.transform.scale(self.bg_tile, (self.WIDTH, self.HEIGHT))
         self.bg_w, self.bg_h = self.bg_tile.get_size()
         
-        # Pre-render background tiling list
+        # Pre-render background tiling list (only enough tiles to cover the screen scrolling area)
         self.bg_tiles = []
-        for i in range(-1, (self.level.finish_x + 500) // self.bg_w + 2):
+        for i in range(-1, self.WIDTH // self.bg_w + 2):
             for j in range(-1, self.HEIGHT // self.bg_h + 2):
                 self.bg_tiles.append((i * self.bg_w, j * self.bg_h))
 
