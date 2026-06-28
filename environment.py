@@ -55,23 +55,40 @@ class CollectibleItem(pygame.sprite.Sprite):
         super().__init__()
         self.assets_manager = AssetsManager()
         self.item_type = item_type
+        self.collected = False
         
         if item_type == "coin":
             raw_image = self.assets_manager.load_platform_image("item_coin.png")
             self.image = pygame.transform.scale(raw_image, (32, 32))
         elif item_type == "chest":
             raw_image = self.assets_manager.load_platform_image("item_chest.png")
-            self.image = pygame.transform.scale(raw_image, (64, 48))
+            # item_chest.png contains 2 frames: 0 = closed, 1 = open
+            w, h = raw_image.get_size()
+            frame_w = w // 2
+            self.sprites = [
+                raw_image.subsurface((0, 0, frame_w, h)),
+                raw_image.subsurface((frame_w, 0, frame_w, h))
+            ]
+            self.sprites = [pygame.transform.scale(s, (56, 48)) for s in self.sprites]
+            self.image = self.sprites[0]
         else:
             raw_image = self.assets_manager.load_platform_image("item_coin.png")
             self.image = pygame.transform.scale(raw_image, (32, 32))
             
         self.rect = self.image.get_rect(topleft=(x, y))
         self.mask = pygame.mask.from_surface(self.image)
-        self.collected = False
+
+    def collect(self):
+        self.collected = True
+        if self.item_type == "chest" and hasattr(self, "sprites"):
+            self.image = self.sprites[1]
+            self.mask = pygame.mask.from_surface(self.image)
 
     def draw(self, win, offset_x):
-        if not self.collected:
+        if self.item_type == "chest":
+            # Always draw the chest (closed or open)
+            win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+        elif not self.collected:
             win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
 
 

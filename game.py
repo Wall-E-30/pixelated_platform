@@ -148,7 +148,10 @@ class Game:
         # 6. Check for Collectible Items (coins, chests)
         for item in self.level.collectibles:
             if not item.collected and pygame.sprite.collide_mask(self.player, item):
-                item.collected = True
+                if hasattr(item, "collect"):
+                    item.collect()
+                else:
+                    item.collected = True
                 if item.item_type == "coin":
                     self.score += 10
                 elif item.item_type == "chest":
