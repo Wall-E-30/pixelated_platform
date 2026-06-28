@@ -218,13 +218,8 @@ class Game:
         # Restrict camera boundaries
         self.offset_x = max(0, min(self.offset_x, self.level.finish_x + 300 - self.WIDTH))
         
-        # Vertical scrolling (if climbing high)
-        if self.player.rect.top - self.offset_y < self.SCROLL_AREA_HEIGHT:
-            self.offset_y += (self.player.rect.top - self.offset_y - self.SCROLL_AREA_HEIGHT) * 0.1
-        elif self.player.rect.bottom - self.offset_y > self.HEIGHT - self.SCROLL_AREA_HEIGHT:
-            self.offset_y += (self.player.rect.bottom - self.offset_y - (self.HEIGHT - self.SCROLL_AREA_HEIGHT)) * 0.1
-            
-        self.offset_y = max(-300, min(self.offset_y, 0))
+        # Lock vertical camera scrolling
+        self.offset_y = 0
 
     def draw_hud(self):
         # 1. Health Hearts
