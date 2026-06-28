@@ -27,9 +27,16 @@ class Game:
         # Reset level, player, camera
         self.level = Level(self.WIDTH, self.HEIGHT)
         self.player = Player(self.level.player_spawn_x, self.level.player_spawn_y)
+        self.player.game_ref = self  # Give player access to screenshake/score
         
         self.offset_x = 0
         self.offset_y = 0
+        self.screenshake = 0
+        self.score = 0
+        self.projectiles = []  # For Goblin Spears and Golem Snares
+        
+        # Load heart HUD image directly
+        self.ui_heart = pygame.transform.scale(self.assets_manager.load_platform_image("ui_heart.png"), (28, 28))
         
         # Load tiled background
         self.bg_tile = self.assets_manager.load_background_tile(self.level.background_name)
@@ -40,6 +47,7 @@ class Game:
         for i in range(-1, (self.level.finish_x + 500) // self.bg_w + 2):
             for j in range(-1, self.HEIGHT // self.bg_h + 2):
                 self.bg_tiles.append((i * self.bg_w, j * self.bg_h))
+
 
     def run(self):
         while True:
@@ -82,8 +90,12 @@ class Game:
         keys = pygame.key.get_pressed()
         self.player.x_vel = 0
         
-        # Block movement during hit knockback or attacking
-        if self.player.state != "hit" and not self.player.attacking:
+        # Decay camera screenshake
+        if self.screenshake > 0:
+            self.screenshake -= 1
+
+        # Block movement during hit knockback, attacking, or being snared
+        if self.player.state != "hit" and not self.player.attacking and not self.player.snared:
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                 self.player.x_vel = -5
                 if self.player.direction != "left":
@@ -100,7 +112,19 @@ class Game:
         
         for enemy in self.level.enemies:
             handle_movement(enemy, self.level.platforms)
-            enemy.loop(self.FPS, self.level.platforms)
+            # Pass player reference and projectiles list to smart enemies (Goblin, Beast)
+            try:
+                enemy.loop(self.FPS, self.level.platforms, self.player, self.projectiles)
+            except TypeError:
+                enemy.loop(self.FPS, self.level.platforms)
+            
+        # Update projectiles and traps
+        for proj in self.projectiles:
+            if type(proj).__name__ == "RootSnare":
+                proj.loop(self.player)
+            else:
+                proj.loop(self.level.platforms)
+        self.projectiles = [p for p in self.projectiles if p.alive]
             
         # 3. Entity loops
         self.player.loop(self.FPS, self.level.platforms)
@@ -110,22 +134,64 @@ class Game:
             if pygame.sprite.collide_mask(self.player, hazard):
                 self.player.take_damage(1, hazard.rect.centerx)
                 
-        # 5. Check Player Attack overlap with Enemies
+        # 5. Check for Interactive Objects (springs, mushrooms)
+        for obj in self.level.interactive_objects:
+            obj.update()
+            if pygame.sprite.collide_mask(self.player, obj):
+                if self.player.y_vel >= -0.5: # only bounce when falling or moving down
+                    obj.trigger_bounce(self.player)
+                    self.score += 5 # small reward for bouncy physics trick
+                    
+        # 6. Check for Collectible Items (coins, chests)
+        for item in self.level.collectibles:
+            if not item.collected and pygame.sprite.collide_mask(self.player, item):
+                item.collected = True
+                if item.item_type == "coin":
+                    self.score += 10
+                elif item.item_type == "chest":
+                    self.score += 200
+                    # Chest is the final source code; complete the level!
+                    self.state = "victory"
+                
+        # 7. Check Player Attack overlap with Enemies / Projectiles
         if self.player.attacking:
             attack_rect = self.player.get_attack_rect()
             if attack_rect:
+                # Attack enemies
                 for enemy in self.level.enemies:
                     if attack_rect.colliderect(enemy.rect):
+                        # Goblins in leaf cloak are immune
+                        if hasattr(enemy, "state") and enemy.state == "cloak":
+                            continue
                         enemy.take_damage(1, self.player.rect.centerx)
+                        if enemy.health <= 0:
+                            self.score += 50
+                            
+                # Deflect spears
+                for proj in self.projectiles:
+                    if type(proj).__name__ == "SpearProjectile":
+                        if attack_rect.colliderect(proj.rect):
+                            proj.alive = False
+                            self.score += 25 # Deflection reward!
                         
         # Remove dead enemies
         self.level.enemies = [e for e in self.level.enemies if e.health > 0]
         
-        # 6. Check Enemy attack contact on Player
+        # 8. Check Enemy attack contact on Player (standard contact damage)
         if not self.player.hit:
+            # Check contact with active enemies
             for enemy in self.level.enemies:
+                if hasattr(enemy, "state") and enemy.state == "cloak":
+                    continue # Cloaked goblins don't deal damage by contact
                 if pygame.sprite.collide_mask(self.player, enemy):
                     self.player.take_damage(1, enemy.rect.centerx)
+                    
+            # Check contact with projectiles (Spears)
+            for proj in self.projectiles:
+                if type(proj).__name__ == "SpearProjectile":
+                    if pygame.sprite.collide_mask(self.player, proj):
+                        self.player.take_damage(1, proj.rect.centerx)
+                        proj.alive = False
 
         # 7. Check Boundaries (Falling out of screen or level)
         if self.player.rect.top > self.HEIGHT + 100:
@@ -157,43 +223,22 @@ class Game:
             
         self.offset_y = max(-300, min(self.offset_y, 0))
 
-    def draw_heart(self, surface, x, y, size):
-        """Helper to draw a pixelated glowing heart shape on the HUD."""
-        # Main heart body (two top circles + lower triangle)
-        # Left circle
-        pygame.draw.circle(surface, (255, 60, 60), (x - size // 4, y - size // 4), size // 4)
-        # Right circle
-        pygame.draw.circle(surface, (255, 60, 60), (x + size // 4, y - size // 4), size // 4)
-        # Pointy bottom triangle
-        points = [
-            (x - size // 2, y - size // 8),
-            (x + size // 2, y - size // 8),
-            (x, y + size // 2)
-        ]
-        pygame.draw.polygon(surface, (255, 60, 60), points)
-        
-        # Soft highlight circle inside left lobe
-        pygame.draw.circle(surface, (255, 180, 180), (x - size // 3, y - size // 3), size // 10)
-
     def draw_hud(self):
         # 1. Health Hearts
-        heart_size = 28
+        heart_w, heart_h = self.ui_heart.get_size()
         spacing = 35
         start_x = 30
         start_y = 40
         for i in range(self.player.max_health):
-            # Draw empty/black heart back for missing health
+            x = start_x + i * spacing
+            y = start_y
             if i >= self.player.health:
-                pygame.draw.circle(self.window, (40, 40, 40), (start_x + i * spacing - heart_size // 4, start_y - heart_size // 4), heart_size // 4)
-                pygame.draw.circle(self.window, (40, 40, 40), (start_x + i * spacing + heart_size // 4, start_y - heart_size // 4), heart_size // 4)
-                points = [
-                    (start_x + i * spacing - heart_size // 2, start_y - heart_size // 8),
-                    (start_x + i * spacing + heart_size // 2, start_y - heart_size // 8),
-                    (start_x + i * spacing, start_y + heart_size // 2)
-                ]
-                pygame.draw.polygon(self.window, (40, 40, 40), points)
+                # Draw empty/darkened heart
+                dark_heart = self.ui_heart.copy()
+                dark_heart.fill((40, 40, 40, 180), special_flags=pygame.BLEND_RGBA_MULT)
+                self.window.blit(dark_heart, (x, y))
             else:
-                self.draw_heart(self.window, start_x + i * spacing, start_y, heart_size)
+                self.window.blit(self.ui_heart, (x, y))
                 
         # 2. Level Progress Bar
         bar_x = 750
@@ -211,48 +256,75 @@ class Game:
         # Text labels on HUD
         font = pygame.font.SysFont("Consolas", 18, bold=True)
         lbl_health = font.render("HERO LIFE", True, (255, 255, 255))
-        self.window.blit(lbl_health, (start_x - 10, start_y - 32))
+        self.window.blit(lbl_health, (start_x, start_y - 24))
         
         lbl_progress = font.render(f"PROGRESS {int(progress * 100)}%", True, (255, 255, 255))
-        self.window.blit(lbl_progress, (bar_x + 50, bar_y - 22))
+        self.window.blit(lbl_progress, (bar_x + 35, bar_y - 22))
+
+        # 3. Score UI (Centered top)
+        lbl_score = font.render(f"SCORE: {self.score:05d}", True, (255, 215, 0))
+        self.window.blit(lbl_score, (self.WIDTH // 2 - 60, start_y - 10))
 
     def draw(self):
+        # Calculate screen shake offsets
+        import random
+        shake_x = 0
+        shake_y = 0
+        if self.screenshake > 0:
+            shake_x = random.randint(-self.screenshake, self.screenshake)
+            shake_y = random.randint(-self.screenshake, self.screenshake)
+
         # 1. Tile Tiled Parallax Background
-        # Tiled with offset_x and offset_y
         for tile_pos in self.bg_tiles:
-            # Tiled background follows camera scroll at 0.1x speed (deep background effect)
-            x = tile_pos[0] - int(self.offset_x * 0.1) % self.bg_w
-            y = tile_pos[1] - int(self.offset_y * 0.1) % self.bg_h
+            x = tile_pos[0] - int(self.offset_x * 0.1) % self.bg_w + shake_x
+            y = tile_pos[1] - int(self.offset_y * 0.1) % self.bg_h + shake_y
             self.window.blit(self.bg_tile, (x, y))
 
         # 2. Draw Decorations (Trees, stumps)
         for decor in self.level.decorations:
-            decor.draw(self.window, self.offset_x, self.offset_y)
+            decor.draw(self.window, self.offset_x + shake_x, self.offset_y + shake_y)
 
-        # 3. Draw Platforms & Spikes
+        # 3. Draw Platforms & Spikes (with screenshake offsets)
         for platform in self.level.platforms:
-            platform.draw(self.window, self.offset_x)
+            self.window.blit(platform.image, (platform.rect.x - self.offset_x - shake_x, platform.rect.y - shake_y))
             
         for hazard in self.level.hazards:
-            hazard.draw(self.window, self.offset_x)
+            self.window.blit(hazard.image, (hazard.rect.x - self.offset_x - shake_x, hazard.rect.y - shake_y))
 
-        # 4. Draw Enemies
+        # 4. Draw Collectibles
+        for item in self.level.collectibles:
+            item.rect.y -= shake_y
+            item.draw(self.window, self.offset_x + shake_x)
+            item.rect.y += shake_y
+
+        # 5. Draw Interactive springs
+        for obj in self.level.interactive_objects:
+            obj.rect.y -= shake_y
+            obj.draw(self.window, self.offset_x + shake_x)
+            obj.rect.y += shake_y
+
+        # 6. Draw Projectiles and Snares
+        for proj in self.projectiles:
+            proj.rect.y -= shake_y
+            proj.draw(self.window, self.offset_x + shake_x)
+            proj.rect.y += shake_y
+
+        # 7. Draw Enemies
         for enemy in self.level.enemies:
-            enemy.draw(self.window, self.offset_x)
+            enemy.rect.y -= shake_y
+            enemy.draw(self.window, self.offset_x + shake_x)
+            enemy.rect.y += shake_y
 
-        # 5. Draw Player
-        self.player.draw(self.window, self.offset_x)
+        # 8. Draw Player
+        self.player.rect.y -= shake_y
+        self.player.draw(self.window, self.offset_x + shake_x)
+        self.player.rect.y += shake_y
 
-        # 6. Draw HUD overlays
+        # 9. Draw HUD overlays
         if self.state == "playing":
             self.draw_hud()
-            # Draw attack range outline for debug/visual clarity if desired (uncomment if helpful)
-            # if self.player.attacking:
-            #     att_rect = self.player.get_attack_rect()
-            #     if att_rect:
-            #         pygame.draw.rect(self.window, (255,0,0), (att_rect.x - self.offset_x, att_rect.y, att_rect.width, att_rect.height), 2)
         
-        # 7. State Screens
+        # 10. State Screens
         if self.state == "menu":
             self.draw_menu_screen()
         elif self.state == "story_intro":

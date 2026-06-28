@@ -21,28 +21,28 @@ def create_gallery():
         <h1>Asset Gallery</h1>
     """
     
-    for folder in sorted(os.listdir(assets_dir)):
-        folder_path = os.path.join(assets_dir, folder)
-        if not os.path.isdir(folder_path):
-            continue
+    # Recursively find all PNG files
+    assets_by_folder = {}
+    for root, dirs, files in os.walk(assets_dir):
+        png_files = [f for f in files if f.lower().endswith('.png')]
+        if png_files:
+            relative_folder = os.path.relpath(root, assets_dir)
+            assets_by_folder[relative_folder] = sorted(png_files)
             
+    for folder, files in sorted(assets_by_folder.items()):
         html_content += f'<div class="category"><h2>{folder}</h2><div class="gallery">'
-        
-        files = sorted(os.listdir(folder_path))
         for f in files:
-            if f.lower().endswith('.png'):
-                file_path = os.path.join(assets_dir, folder, f)
-                # Use relative path for web browser
-                rel_path = f"assets/{folder}/{f}"
-                html_content += f"""
-                <div class="card">
-                    <img src="{rel_path}" alt="{f}" />
-                    <div class="info">
-                        <strong>{f}</strong><br/>
-                        Path: {rel_path}
-                    </div>
+            file_path = os.path.join(assets_dir, folder, f) if folder != "." else os.path.join(assets_dir, f)
+            rel_path = file_path.replace("\\", "/")
+            html_content += f"""
+            <div class="card">
+                <img src="{rel_path}" alt="{f}" />
+                <div class="info">
+                    <strong>{f}</strong><br/>
+                    Path: {rel_path}
                 </div>
-                """
+            </div>
+            """
         html_content += '</div></div>'
         
     html_content += """

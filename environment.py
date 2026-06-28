@@ -48,3 +48,76 @@ class Decoration(pygame.sprite.Sprite):
         render_x = self.rect.x - int(offset_x * self.parallax_factor)
         render_y = self.rect.y - int(offset_y * self.parallax_factor)
         win.blit(self.image, (render_x, render_y))
+
+
+class CollectibleItem(pygame.sprite.Sprite):
+    def __init__(self, x, y, item_type="coin"):
+        super().__init__()
+        self.assets_manager = AssetsManager()
+        self.item_type = item_type
+        
+        if item_type == "coin":
+            raw_image = self.assets_manager.load_platform_image("item_coin.png")
+            self.image = pygame.transform.scale(raw_image, (32, 32))
+        elif item_type == "chest":
+            raw_image = self.assets_manager.load_platform_image("item_chest.png")
+            self.image = pygame.transform.scale(raw_image, (64, 48))
+        else:
+            raw_image = self.assets_manager.load_platform_image("item_coin.png")
+            self.image = pygame.transform.scale(raw_image, (32, 32))
+            
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.collected = False
+
+    def draw(self, win, offset_x):
+        if not self.collected:
+            win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+
+
+class InteractiveObject(pygame.sprite.Sprite):
+    def __init__(self, x, y, obj_type="jump_pad"):
+        super().__init__()
+        self.assets_manager = AssetsManager()
+        self.obj_type = obj_type
+        
+        if obj_type == "jump_pad":
+            raw_image = self.assets_manager.load_platform_image("interactive_jump_pad.png")
+            self.image = pygame.transform.scale(raw_image, (48, 48))
+            self.bounce_vel = -14.5
+        elif obj_type == "mushroom":
+            raw_image = self.assets_manager.load_platform_image("interactive_mushroom.png")
+            self.image = pygame.transform.scale(raw_image, (48, 48))
+            self.bounce_vel = -11.0
+        else:
+            raw_image = self.assets_manager.load_platform_image("interactive_jump_pad.png")
+            self.image = pygame.transform.scale(raw_image, (48, 48))
+            self.bounce_vel = -12.0
+            
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_tick = 0
+        self.animating = False
+
+    def trigger_bounce(self, player):
+        player.y_vel = self.bounce_vel
+        player.fall_count = 0
+        player.jump_count = 1  # Reset to 1 jump allowed (effectively double jump allowed mid-air!)
+        player.state = "jump"
+        self.animating = True
+        self.animation_tick = 12
+
+    def update(self):
+        if self.animating:
+            self.animation_tick -= 1
+            if self.animation_tick <= 0:
+                self.animating = False
+
+    def draw(self, win, offset_x):
+        if self.animating:
+            squashed = pygame.transform.scale(self.image, (self.rect.width + 10, self.rect.height - 10))
+            render_rect = squashed.get_rect(midbottom=(self.rect.centerx, self.rect.bottom))
+            win.blit(squashed, (render_rect.x - offset_x, render_rect.y))
+        else:
+            win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+

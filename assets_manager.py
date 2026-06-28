@@ -44,6 +44,27 @@ class AssetsManager:
             "jump": [(909, 388, 118, 164)],
             "fall": [(1142, 516, 201, 60)]
         }
+        
+        # Bounding boxes for Forest Goblin (from goblin_spritesheet.png and leaf_goblin_spritesheet.png)
+        self.GOBLIN_BOXES = {
+            "idle": [(253, 465, 185, 179)],
+            "run": [(512, 428, 236, 215)],
+            "melee": [(735, 483, 298, 163)],
+            "hit": [(1098, 468, 219, 184)]
+        }
+        self.LEAF_GOBLIN_BOXES = {
+            "cloak": [(178, 517, 219, 196)],
+            "revealed": [(1059, 520, 333, 200)],
+            "throw": [(519, 473, 458, 236)]
+        }
+        
+        # Bounding boxes for Horned Beast (from golem_spritesheet.png)
+        self.HORNED_BEAST_BOXES = {
+            "idle": [(130, 319, 390, 369)],
+            "slam": [(544, 400, 447, 288)],
+            "hit": [(1045, 388, 358, 303)]
+        }
+
 
     def load_image(self, path, convert_alpha=True):
         """Loads and caches images to avoid redundant disk access."""
@@ -134,6 +155,58 @@ class AssetsManager:
             
         return animations
 
+    def load_goblin_sprites(self, target_size=96):
+        """Extracts and returns Goblin animations from both standard and leaf sheets."""
+        std_sheet_path = join("assets", "Enemies", "goblin_spritesheet.png")
+        leaf_sheet_path = join("assets", "Enemies", "leaf_goblin_spritesheet.png")
+        
+        std_sheet = self.load_image(std_sheet_path)
+        leaf_sheet = self.load_image(leaf_sheet_path)
+        
+        animations = {}
+        
+        # Load from standard sheet (idle, run, melee, hit)
+        for state, boxes in self.GOBLIN_BOXES.items():
+            right_sprites = []
+            left_sprites = []
+            for box in boxes:
+                sprite = self.extract_and_scale_sprite(std_sheet, box, target_size)
+                right_sprites.append(sprite)
+                left_sprites.append(pygame.transform.flip(sprite, True, False))
+            animations[f"{state}_right"] = right_sprites
+            animations[f"{state}_left"] = left_sprites
+            
+        # Load from leaf variant sheet (cloak, revealed, throw)
+        for state, boxes in self.LEAF_GOBLIN_BOXES.items():
+            right_sprites = []
+            left_sprites = []
+            for box in boxes:
+                sprite = self.extract_and_scale_sprite(leaf_sheet, box, target_size)
+                right_sprites.append(sprite)
+                left_sprites.append(pygame.transform.flip(sprite, True, False))
+            animations[f"{state}_right"] = right_sprites
+            animations[f"{state}_left"] = left_sprites
+            
+        return animations
+
+    def load_horned_beast_sprites(self, target_size=128):
+        """Extracts and returns Horned Beast animations from golem_spritesheet.png."""
+        sheet_path = join("assets", "Enemies", "golem_spritesheet.png")
+        sheet = self.load_image(sheet_path)
+        
+        animations = {}
+        for state, boxes in self.HORNED_BEAST_BOXES.items():
+            right_sprites = []
+            left_sprites = []
+            for box in boxes:
+                sprite = self.extract_and_scale_sprite(sheet, box, target_size)
+                right_sprites.append(sprite)
+                left_sprites.append(pygame.transform.flip(sprite, True, False))
+            animations[f"{state}_right"] = right_sprites
+            animations[f"{state}_left"] = left_sprites
+            
+        return animations
+
     def load_background_tile(self, name):
         """Loads a background tile from assets/Background/."""
         path = join("assets", "Background", name)
@@ -153,3 +226,9 @@ class AssetsManager:
         """Loads a decoration image from assets/Forest/."""
         path = join("assets", "Forest", name)
         return self.load_image(path)
+
+    def load_projectile_image(self, name):
+        """Loads a projectile image from assets/Enemies/."""
+        path = join("assets", "Enemies", name)
+        return self.load_image(path)
+
