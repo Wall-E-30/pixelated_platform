@@ -24,145 +24,141 @@ class Level:
         self.setup_level()
 
     def setup_level(self):
-        # 1. Background decorations (Far distance, Parallax = 0.3 - 0.5)
-        # Trees placed across the level
-        self.decorations.extend([
-            # Far Pine Trees (Factor 0.3)
-            Decoration(150, 310, "decor_pine_trees.png", parallax_factor=0.3),
-            Decoration(950, 310, "decor_pine_trees.png", parallax_factor=0.3),
-            Decoration(1750, 310, "decor_pine_trees.png", parallax_factor=0.3),
-            Decoration(2600, 310, "decor_pine_trees.png", parallax_factor=0.3),
-            
-            # Far Deciduous Trees (Factor 0.4)
-            Decoration(500, 290, "decor_deciduous_tree.png", parallax_factor=0.4),
-            Decoration(1300, 290, "decor_deciduous_tree.png", parallax_factor=0.4),
-            Decoration(2100, 290, "decor_deciduous_tree.png", parallax_factor=0.4),
-            Decoration(2900, 290, "decor_deciduous_tree.png", parallax_factor=0.4),
-            
-            # Closer Leafy Trees (Factor 0.7)
-            Decoration(300, 500, "decor_leafy_tree.png", parallax_factor=0.7),
-            Decoration(1150, 500, "decor_leafy_tree.png", parallax_factor=0.7),
-            Decoration(2400, 500, "decor_leafy_tree.png", parallax_factor=0.7),
-        ])
-        
-        # 2. Foreground decorations (No parallax, factor = 1.0, drawn behind entities)
-        self.decorations.extend([
-            Decoration(750, 550, "decor_fallen_log.png", parallax_factor=1.0),
-            Decoration(2150, 550, "decor_fallen_log.png", parallax_factor=1.0),
-            Decoration(1000, 560, "decor_stump_logs.png", parallax_factor=1.0),
-            Decoration(2750, 560, "decor_stump_logs.png", parallax_factor=1.0),
-        ])
-        
-        # 3. Platforms (Solid, collidable ground)
-        # Ground platforms
-        # y = 680 is the floor surface height for most blocks
-        self.platforms.extend([
-            # Starting floor block (0 to 359)
-            Platform(0, 680, "platform_grassy_dirt.png"),
-            
-            # Rope bridge over water/gap (359 to 654)
-            Platform(359, 680, "platform_rope_bridge.png"),
-            
-            # Middle floor block (654 to 1013)
-            Platform(654, 680, "platform_grassy_dirt.png"),
-            
-            # Gap from 1013 to 1210 (Contains spikes below)
-            # Next block starts at 1210 (1210 to 1454)
-            Platform(1210, 680, "platform_stone_brick.png"),
-            
-            # Platform raised slightly (1454 to 1710)
-            Platform(1454, 620, "platform_mossy_stone.png"),
-            
-            # Wood platform (1920 to 2148)
-            Platform(1920, 650, "platform_wood.png"),
-            
-            # Long ground path (2148 to 2507)
-            Platform(2148, 680, "platform_grassy_dirt.png"),
-            
-            # Raised rock barrier (2507 to 2772)
-            Platform(2507, 600, "platform_mossy_rock.png"),
-            
-            # Stone brick wall before final floor (2772 to 3016)
-            Platform(2772, 520, "platform_stone_brick.png"),
-            
-            # Final Floor (3016 to 3500)
-            Platform(3016, 680, "platform_grassy_dirt.png"),
-        ])
-        
-        # 4. Floating platforms (For jumping challenges)
-        self.platforms.extend([
-            Platform(500, 500, "platform_wood.png"),          # Floating wood above rope bridge
-            Platform(800, 430, "platform_mossy_stone.png"),   # Floating mossy stone
-            Platform(1350, 480, "platform_stone_brick.png"),  # Floating brick
-            Platform(1650, 380, "platform_wood.png"),         # Floating wood
-            Platform(2250, 480, "platform_mossy_stone.png"),  # Floating mossy stone
-        ])
-        
-        # 5. Hazards (Spikes placed in gaps or platforms)
-        self.hazards.extend([
-            # Spikes in the gap between 1013 and 1210
-            Hazard(1013, 730, "hazard_spikes.png"),
-            
-            # Spikes placed on the high stone wall for challenge
-            Hazard(2800, 424, "hazard_spikes.png"),
-        ])
-        
-        # 6. Interactive Objects (Bouncy springs & mushrooms)
-        self.interactive_objects.extend([
-            # Bouncy mushroom in the bottom of the spiked gap to help recover
-            InteractiveObject(1090, 690, "mushroom"),
-            
-            # Jump pad to jump high onto the stone wall barrier
-            InteractiveObject(2650, 632, "jump_pad"),
-        ])
-        
-        # 7. Collectible Items (Gold coins & final treasure chest)
-        # Gold coins distributed on floating/challenging platforms
-        self.collectibles.extend([
-            # Coins on starting ground
-            CollectibleItem(250, 640, "coin"),
-            CollectibleItem(300, 640, "coin"),
-            
-            # Coins on rope bridge platform
-            CollectibleItem(520, 460, "coin"),
-            CollectibleItem(560, 460, "coin"),
-            
-            # Coins in middle section
-            CollectibleItem(820, 390, "coin"),
-            CollectibleItem(1370, 440, "coin"),
-            CollectibleItem(1670, 340, "coin"),
-            CollectibleItem(2270, 440, "coin"),
-            
-            # Coins before final boss
-            CollectibleItem(2520, 560, "coin"),
-            CollectibleItem(2580, 560, "coin"),
-            
-            # Final Source Code chest at the end
-            CollectibleItem(3250, 632, "chest"),
-        ])
-        
         import random
-        # 8. Enemies
-        self.enemies.extend([
-            # Patrol Slime on starting area (randomized on the start platform)
-            SlimeEnemy(random.randint(700, 920), 616, patrol_dist=80),
+        
+        # 1. Background decorations (placed globally across the whole generated level width)
+        # We will distribute them dynamically based on the total width of the level.
+        # Total Level Width = Start Chunk (500) + 3 Middle Chunks (3 * 800 = 2400) + End Chunk (500) = 3400
+        total_width = 3400
+        
+        # Spatially distribute background pine trees, deciduous trees, and leafy trees
+        for x in range(150, total_width - 300, 800):
+            self.decorations.append(Decoration(x, 310, "decor_pine_trees.png", parallax_factor=0.3))
+        for x in range(500, total_width - 300, 800):
+            self.decorations.append(Decoration(x, 290, "decor_deciduous_tree.png", parallax_factor=0.4))
+        for x in range(300, total_width - 300, 900):
+            self.decorations.append(Decoration(x, 500, "decor_leafy_tree.png", parallax_factor=0.7))
             
-            # Slime on high mossy stone platform (randomized on the high platform)
-            SlimeEnemy(random.randint(800, 900), 366, patrol_dist=40),
+        # 2. Foreground decorations (drawn behind entities)
+        for x in range(750, total_width - 500, 1200):
+            self.decorations.append(Decoration(x, 550, "decor_fallen_log.png", parallax_factor=1.0))
+            self.decorations.append(Decoration(x + 250, 560, "decor_stump_logs.png", parallax_factor=1.0))
             
-            # Forest Goblin in Leaf Cloak camouflage above rope bridge
-            ForestGoblinEnemy(random.randint(510, 610), 428, patrol_dist=30),
-            
-            # Forest Goblin on floating wood platform in middle
-            ForestGoblinEnemy(random.randint(1640, 1720), 308, patrol_dist=30),
-            
-            # Slime on stone brick floor
-            SlimeEnemy(random.randint(1230, 1380), 616, patrol_dist=50),
-            
-            # Horned Beast Mini-Boss guarding the forest floor path
-            HornedBeastEnemy(random.randint(2200, 2400), 560),
-            
-            # Patrol slime near the chest
-            SlimeEnemy(random.randint(3030, 3180), 616, patrol_dist=50),
+        # 3. Start Chunk (0 to 500)
+        # Safe spawning area
+        self.platforms.extend([
+            Platform(0, 680, "platform_grassy_dirt.png"),
+            Platform(359, 680, "platform_grassy_dirt.png")
         ])
+        # Start patrol slime
+        self.enemies.append(SlimeEnemy(random.randint(250, 420), 616, patrol_dist=60))
+        
+        # 4. Generate 3 randomized middle chunks
+        chunk_width = 800
+        current_x = 500
+        
+        # Define the chunk generation functions to choose from
+        def generate_flat_chunk(base_x):
+            # Ground
+            self.platforms.extend([
+                Platform(base_x, 680, "platform_grassy_dirt.png"),
+                Platform(base_x + 359, 680, "platform_grassy_dirt.png"),
+                Platform(base_x + 718, 680, "platform_stone_brick.png")
+            ])
+            # High wood platform
+            self.platforms.append(Platform(base_x + 250, 480, "platform_wood.png"))
+            # Coins
+            self.collectibles.extend([
+                CollectibleItem(base_x + 300, 400, "coin"),
+                CollectibleItem(base_x + 360, 400, "coin")
+            ])
+            # Enemies
+            self.enemies.append(SlimeEnemy(base_x + random.randint(100, 500), 616, patrol_dist=80))
+
+        def generate_spike_gap_chunk(base_x):
+            # Ground blocks with a gap from base_x + 359 to base_x + 500
+            self.platforms.extend([
+                Platform(base_x, 680, "platform_grassy_dirt.png"),
+                Platform(base_x + 500, 680, "platform_grassy_dirt.png")
+            ])
+            # Spikes in the gap
+            self.hazards.append(Hazard(base_x + 370, 730, "hazard_spikes.png"))
+            # Bouncy mushroom inside the gap to bounce out
+            self.interactive_objects.append(InteractiveObject(base_x + 410, 690, "mushroom"))
+            # Floating wood platform over the gap
+            self.platforms.append(Platform(base_x + 330, 500, "platform_wood.png"))
+            # Coins above wood platform
+            self.collectibles.extend([
+                CollectibleItem(base_x + 380, 420, "coin"),
+                CollectibleItem(base_x + 440, 420, "coin")
+            ])
+            # Goblin on the wood platform
+            self.enemies.append(ForestGoblinEnemy(base_x + random.randint(330, 430), 428, patrol_dist=30))
+
+        def generate_bridge_climb_chunk(base_x):
+            # Ground with a rope bridge gap from base_x + 359 to base_x + 654
+            self.platforms.extend([
+                Platform(base_x, 680, "platform_grassy_dirt.png"),
+                Platform(base_x + 359, 680, "platform_rope_bridge.png"),
+                Platform(base_x + 654, 680, "platform_grassy_dirt.png")
+            ])
+            # Floating wood and mossy stone platforms
+            self.platforms.extend([
+                Platform(base_x + 200, 500, "platform_wood.png"),
+                Platform(base_x + 500, 430, "platform_mossy_stone.png")
+            ])
+            # Coins
+            self.collectibles.extend([
+                CollectibleItem(base_x + 250, 440, "coin"),
+                CollectibleItem(base_x + 550, 370, "coin")
+            ])
+            # Goblin on high mossy stone
+            self.enemies.append(ForestGoblinEnemy(base_x + random.randint(500, 600), 358, patrol_dist=30))
+            # Slime on floor
+            self.enemies.append(SlimeEnemy(base_x + 100, 616, patrol_dist=60))
+
+        def generate_boss_arena_chunk(base_x):
+            # Ground
+            self.platforms.extend([
+                Platform(base_x, 680, "platform_grassy_dirt.png"),
+                Platform(base_x + 515, 680, "platform_grassy_dirt.png")
+            ])
+            # Raised mossy rock barrier in the middle
+            self.platforms.append(Platform(base_x + 250, 600, "platform_mossy_rock.png"))
+            # Jump pad to vault over the rock barrier
+            self.interactive_objects.append(InteractiveObject(base_x + 150, 632, "jump_pad"))
+            # Coins above rock
+            self.collectibles.extend([
+                CollectibleItem(base_x + 300, 520, "coin"),
+                CollectibleItem(base_x + 360, 520, "coin")
+            ])
+            # Horned Beast Mini-Boss guarding the other side
+            self.enemies.append(HornedBeastEnemy(base_x + random.randint(550, 680), 560))
+
+        # Randomly choose and construct 3 middle chunks
+        chunk_generators = [
+            generate_flat_chunk, 
+            generate_spike_gap_chunk, 
+            generate_bridge_climb_chunk, 
+            generate_boss_arena_chunk
+        ]
+        
+        # Ensure we get a good variety of different middle chunks
+        chosen_generators = [random.choice(chunk_generators) for _ in range(3)]
+        
+        for generator in chosen_generators:
+            generator(current_x)
+            current_x += chunk_width
+            
+        # 5. End Chunk (starting at current_x, which is 500 + 2400 = 2900)
+        self.platforms.extend([
+            Platform(current_x, 680, "platform_grassy_dirt.png"),
+            Platform(current_x + 359, 680, "platform_grassy_dirt.png")
+        ])
+        # Treasure chest
+        self.collectibles.append(CollectibleItem(current_x + 200, 632, "chest"))
+        # Final slime guarding chest
+        self.enemies.append(SlimeEnemy(current_x + 50, 616, patrol_dist=50))
+        
+        self.finish_x = current_x + 200
 
