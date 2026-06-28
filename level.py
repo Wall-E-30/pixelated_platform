@@ -141,27 +141,28 @@ class Level:
             CollectibleItem(3250, 632, "chest"),
         ])
         
+        import random
         # 8. Enemies
         self.enemies.extend([
-            # Patrol Slime on starting area
-            SlimeEnemy(750, 616, patrol_dist=100),
+            # Patrol Slime on starting area (randomized on the start platform)
+            SlimeEnemy(random.randint(700, 920), 616, patrol_dist=80),
             
-            # Slime on high mossy stone platform
-            SlimeEnemy(850, 366, patrol_dist=50),
+            # Slime on high mossy stone platform (randomized on the high platform)
+            SlimeEnemy(random.randint(800, 900), 366, patrol_dist=40),
             
             # Forest Goblin in Leaf Cloak camouflage above rope bridge
-            ForestGoblinEnemy(570, 428, patrol_dist=40),
+            ForestGoblinEnemy(random.randint(510, 610), 428, patrol_dist=30),
             
             # Forest Goblin on floating wood platform in middle
-            ForestGoblinEnemy(1660, 308, patrol_dist=40),
+            ForestGoblinEnemy(random.randint(1640, 1720), 308, patrol_dist=30),
             
             # Slime on stone brick floor
-            SlimeEnemy(1280, 616, patrol_dist=60),
+            SlimeEnemy(random.randint(1230, 1380), 616, patrol_dist=50),
             
             # Horned Beast Mini-Boss guarding the forest floor path
-            HornedBeastEnemy(2300, 560),
+            HornedBeastEnemy(random.randint(2200, 2400), 560),
             
             # Patrol slime near the chest
-            SlimeEnemy(3100, 616, patrol_dist=50),
+            SlimeEnemy(random.randint(3030, 3180), 616, patrol_dist=50),
         ])
 
