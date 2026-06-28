@@ -40,6 +40,9 @@ class Game:
         
         # Load tiled background
         self.bg_tile = self.assets_manager.load_background_tile(self.level.background_name)
+        if self.bg_tile.get_width() > 128:
+            # Scale large landscape backgrounds to fit screen height nicely (1000x800)
+            self.bg_tile = pygame.transform.scale(self.bg_tile, (1000, 800))
         self.bg_w, self.bg_h = self.bg_tile.get_size()
         
         # Pre-render background tiling list
@@ -400,8 +403,7 @@ class Game:
         
         story_lines = [
             "Deep within the digital woods, the legendary",
-            "Code of Antigravity has been shattered by corrupt",
-            "slimes. Physics is collapsing, tiles are floating!",
+            "Physics is collapsing, tiles are floating!",
             "",
             "Our brave hero must venture through the terrain,",
             "leap across spikes, defeat the guard slimes,",
@@ -443,7 +445,7 @@ class Game:
             "Victory! You reached the Golden Gates",
             "and restored balance to the Forest Realm.",
             "",
-            "The Code of Antigravity is safe once more.",
+            "The Chronicle Forest is safe once more.",
             "Thank you for playing!"
         ]
         

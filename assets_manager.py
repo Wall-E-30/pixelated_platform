@@ -208,9 +208,16 @@ class AssetsManager:
         return animations
 
     def load_background_tile(self, name):
-        """Loads a background tile from assets/Background/."""
-        path = join("assets", "Background", name)
-        return self.load_image(path)
+        """Loads a background tile from assets/Background/ or assets/Forest/ with dimming."""
+        path_bg = join("assets", "Background", name)
+        path_forest = join("assets", "Forest", name)
+        path = path_bg if os.path.exists(path_bg) else path_forest
+        img = self.load_image(path)
+        
+        # Apply a darkening filter to the background image so it sits back and platforms pop!
+        dimmed = img.copy()
+        dimmed.fill((85, 85, 105, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        return dimmed
 
     def load_platform_image(self, name):
         """Loads a platform image from assets/Forest/."""
@@ -223,9 +230,14 @@ class AssetsManager:
         return self.load_image(path)
 
     def load_decoration_image(self, name):
-        """Loads a decoration image from assets/Forest/."""
+        """Loads a decoration image from assets/Forest/ with desaturation."""
         path = join("assets", "Forest", name)
-        return self.load_image(path)
+        img = self.load_image(path)
+        
+        # Dim decorations so players do not confuse them with collidable platforms
+        dimmed = img.copy()
+        dimmed.fill((135, 135, 155, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        return dimmed
 
     def load_projectile_image(self, name):
         """Loads a projectile image from assets/Enemies/."""

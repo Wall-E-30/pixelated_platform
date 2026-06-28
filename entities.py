@@ -215,9 +215,11 @@ class SlimeEnemy(Entity):
         self.patrol_dist = patrol_dist
         self.animation_count = 0
         
-        # Hit response
+        # Attack and hit timers
         self.hit = False
         self.hit_timer = 0
+        self.charge_timer = 0
+        self.attack_cooldown = 0
 
     def take_damage(self, damage, source_x):
         if not self.hit:
@@ -230,48 +232,86 @@ class SlimeEnemy(Entity):
             self.x_vel = knockback_dir * 5
             self.y_vel = -4
             self.fall_count = 0
+            self.state = "walk"
 
     def landed(self):
         self.fall_count = 0
         self.y_vel = 0
-        self.state = "walk"
+        if self.state == "jump_attack":
+            self.state = "walk"
+            self.attack_cooldown = 90  # 1.5 seconds cooldown before next leap
+        else:
+            self.state = "walk"
         # Resume patrol speed in correct direction
         self.x_vel = self.speed if self.direction == "right" else -self.speed
 
     def hit_head(self):
         self.y_vel = 0
 
-    def loop(self, fps, platforms):
+    def loop(self, fps, platforms, player=None, projectiles=None):
         # Apply gravity
         self.y_vel += min(0.9, (self.fall_count / fps) * self.GRAVITY)
         self.fall_count += 1
         
+        # Decelerate cooldown
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= 1
+
         # Handle hit recovery
         if self.hit:
             self.hit_timer -= 1
             if self.hit_timer <= 0:
                 self.hit = False
                 
-        # Simple AI Patrol
+        # Simple AI Patrol and Leaping Attack
         if not self.hit:
-            # Check patrol limits and turn around
-            if self.rect.x < self.start_x - self.patrol_dist:
-                self.direction = "right"
-                self.x_vel = self.speed
-            elif self.rect.x > self.start_x + self.patrol_dist:
-                self.direction = "left"
-                self.x_vel = -self.speed
-                
-            # If hit a wall (x_vel was set to 0 by physics)
-            if self.x_vel == 0:
-                self.direction = "right" if self.direction == "left" else "left"
-                self.x_vel = self.speed if self.direction == "right" else -self.speed
+            if self.state == "walk":
+                # Check distance to player for leap attack trigger
+                if player and self.attack_cooldown <= 0:
+                    dist_x = player.rect.centerx - self.rect.centerx
+                    dist_y = player.rect.centery - self.rect.centery
+                    if abs(dist_x) < 180 and abs(dist_y) < 100:
+                        self.state = "charge"
+                        self.charge_timer = 20  # Charge for ~0.33 seconds
+                        self.x_vel = 0
+                        self.direction = "right" if dist_x > 0 else "left"
+
+                # If still walking, do normal patrol bounds check
+                if self.state == "walk":
+                    if self.rect.x < self.start_x - self.patrol_dist:
+                        self.direction = "right"
+                        self.x_vel = self.speed
+                    elif self.rect.x > self.start_x + self.patrol_dist:
+                        self.direction = "left"
+                        self.x_vel = -self.speed
+                        
+                    # If hit a wall
+                    if self.x_vel == 0:
+                        self.direction = "right" if self.direction == "left" else "left"
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+            
+            elif self.state == "charge":
+                self.x_vel = 0
+                self.charge_timer -= 1
+                if self.charge_timer <= 0:
+                    # Leap attack launched!
+                    self.state = "jump_attack"
+                    leap_dir = 1 if self.direction == "right" else -1
+                    self.x_vel = leap_dir * 6.5
+                    self.y_vel = -8.0
+                    self.fall_count = 0
+            
+            elif self.state == "jump_attack":
+                # Keep traveling forward during jump attack
+                pass
 
         self.update_sprite()
 
     def update_sprite(self):
         # Select sheet
-        if self.y_vel < 0:
+        if self.state == "charge":
+            sprite_sheet = "idle"
+        elif self.y_vel < 0:
             sprite_sheet = "jump"
         elif self.y_vel > self.GRAVITY * 3:
             sprite_sheet = "fall"
@@ -297,7 +337,15 @@ class SlimeEnemy(Entity):
         self.update_mask()
 
     def draw(self, win, offset_x):
-        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+        if self.state == "charge":
+            # Squash down and stretch horizontally to charge up leap
+            w = int(self.rect.width * 1.3)
+            h = int(self.rect.height * 0.7)
+            squashed = pygame.transform.scale(self.image, (w, h))
+            render_rect = squashed.get_rect(midbottom=self.rect.midbottom)
+            win.blit(squashed, (render_rect.x - offset_x, render_rect.y))
+        else:
+            win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
 
 
 class SpearProjectile(pygame.sprite.Sprite):

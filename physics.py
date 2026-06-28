@@ -14,6 +14,10 @@ def handle_movement(entity, platforms):
     """
     # 1. Horizontal Movement & Collision
     if entity.x_vel != 0:
+        # Lift up temporarily by 2 pixels to prevent getting stuck on ground/slope overlaps
+        entity.rect.y -= 2
+        entity.update_mask()
+        
         entity.rect.x += int(entity.x_vel)
         entity.update_mask()
         
@@ -28,6 +32,10 @@ def handle_movement(entity, platforms):
                 entity.update_mask()
                 steps += 1
             entity.x_vel = 0
+            
+        # Restore vertical position
+        entity.rect.y += 2
+        entity.update_mask()
             
     # 2. Vertical Movement & Collision (Gravity & Jumping)
     if entity.y_vel != 0:
