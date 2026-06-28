@@ -21,6 +21,9 @@ class Entity(pygame.sprite.Sprite):
         if self.image:
             self.mask = pygame.mask.from_surface(self.image)
 
+    def get_hitbox(self):
+        return self.rect
+
 
 class Player(Entity):
     GRAVITY = 0.8
@@ -103,6 +106,12 @@ class Player(Entity):
             self.x_vel = knockback_dir * 8
             self.y_vel = -4
             self.fall_count = 0
+
+    def get_hitbox(self):
+        # Centered hitbox of size 48x80 (narrower than 96x96 to avoid weapons)
+        hitbox = pygame.Rect(0, 0, 48, 80)
+        hitbox.center = self.rect.center
+        return hitbox
 
     def loop(self, fps, platforms):
         # Apply gravity
@@ -233,6 +242,12 @@ class SlimeEnemy(Entity):
             self.y_vel = -4
             self.fall_count = 0
             self.state = "walk"
+
+    def get_hitbox(self):
+        # Centered hitbox of size 44x44
+        hitbox = pygame.Rect(0, 0, 44, 44)
+        hitbox.center = self.rect.center
+        return hitbox
 
     def landed(self):
         self.fall_count = 0
@@ -459,6 +474,12 @@ class ForestGoblinEnemy(Entity):
             self.y_vel = -3
             self.fall_count = 0
 
+    def get_hitbox(self):
+        # Centered hitbox of size 36x64 (much narrower than 72x72 to avoid wide weapon frames)
+        hitbox = pygame.Rect(0, 0, 36, 64)
+        hitbox.center = self.rect.center
+        return hitbox
+
     def landed(self):
         self.fall_count = 0
         self.y_vel = 0
@@ -624,6 +645,12 @@ class HornedBeastEnemy(Entity):
             self.x_vel = knockback_dir * 2
             self.y_vel = -2
             self.fall_count = 0
+
+    def get_hitbox(self):
+        # Centered hitbox of size 80x100
+        hitbox = pygame.Rect(0, 0, 80, 100)
+        hitbox.center = self.rect.center
+        return hitbox
 
     def landed(self):
         self.fall_count = 0

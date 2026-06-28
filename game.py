@@ -162,7 +162,7 @@ class Game:
             if attack_rect:
                 # Attack enemies
                 for enemy in self.level.enemies:
-                    if attack_rect.colliderect(enemy.rect):
+                    if attack_rect.colliderect(enemy.get_hitbox()):
                         # Goblins in leaf cloak are immune
                         if hasattr(enemy, "state") and enemy.state == "cloak":
                             continue
@@ -186,7 +186,7 @@ class Game:
             for enemy in self.level.enemies:
                 if hasattr(enemy, "state") and enemy.state == "cloak":
                     continue # Cloaked goblins don't deal damage by contact
-                if pygame.sprite.collide_mask(self.player, enemy):
+                if self.player.get_hitbox().colliderect(enemy.get_hitbox()):
                     self.player.take_damage(1, enemy.rect.centerx)
                     
             # Check contact with projectiles (Spears)
