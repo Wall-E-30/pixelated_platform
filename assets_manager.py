@@ -21,48 +21,105 @@ class AssetsManager:
         # Bounding boxes: (x, y, width, height)
         # The original sprites face right.
         self.PLAYER_BOXES = {
-            "idle": [(176, 353, 114, 213)],
+            "idle": [(1035, 90, 136, 317)],
             "run": [
-                (434, 376, 182, 190),
-                (611, 376, 166, 189)
+                (1336, 471, 209, 307),
+                (1609, 471, 203, 306),
+                (1900, 475, 220, 288),
+                (2197, 472, 223, 304)
             ],
-            "jump": [(852, 311, 126, 224)],
-            "fall": [(852, 311, 126, 224)], # Reusing jump pose for fall
-            "attack": [(1094, 394, 268, 172)]
+            "jump": [
+                (1369, 941, 216, 299),
+                (1672, 882, 150, 347)
+            ],
+            "fall": [
+                (1900, 869, 239, 349),
+                (2197, 932, 212, 308),
+                (90, 1340, 171, 313)
+            ],
+            "attack": [
+                (84, 902, 244, 337),
+                (332, 903, 265, 336),
+                (658, 904, 225, 334),
+                (957, 886, 258, 352)
+            ],
+            "hit": [
+                (345, 1338, 175, 316),
+                (574, 1340, 285, 312)
+            ]
         }
         
-        # Define bounding boxes for Slime Enemy sprites (from enemy_slime_spritesheet.png)
-        # Bounding boxes: (x, y, width, height)
-        # Original sprites face right.
+        # Define bounding boxes for Slime Enemy sprites (from Slime.png)
         self.SLIME_BOXES = {
-            "idle": [(215, 497, 127, 66)],
-            "walk": [
-                (215, 497, 127, 66),
-                (447, 497, 167, 68),
-                (632, 497, 191, 66)
+            "idle": [
+                (1372, 182, 211, 116),
+                (1634, 182, 267, 116),
+                (1931, 201, 266, 97),
+                (2225, 210, 247, 88)
             ],
-            "jump": [(909, 388, 118, 164)],
-            "fall": [(1142, 516, 201, 60)]
+            "walk": [
+                (62, 415, 198, 113),
+                (300, 415, 200, 113),
+                (549, 415, 195, 113),
+                (793, 419, 201, 111),
+                (1031, 418, 210, 111),
+                (1284, 418, 195, 112)
+            ],
+            "jump": [
+                (77, 783, 201, 106),
+                (331, 729, 201, 160),
+                (593, 635, 224, 158),
+                (870, 695, 228, 159),
+                (1145, 806, 246, 84)
+            ],
+            "fall": [
+                (1441, 779, 198, 110),
+                (1725, 742, 198, 147),
+                (1972, 744, 206, 145),
+                (2224, 731, 209, 158)
+            ]
         }
         
-        # Bounding boxes for Forest Goblin (from goblin_spritesheet.png and leaf_goblin_spritesheet.png)
+        # Bounding boxes for Forest Goblin (from Forest_Goblin.png)
         self.GOBLIN_BOXES = {
-            "idle": [(253, 465, 185, 179)],
-            "run": [(512, 428, 236, 215)],
-            "melee": [(735, 483, 298, 163)],
-            "hit": [(1098, 468, 219, 184)]
+            "idle": [(54, 88, 191, 258)],
+            "run": [
+                (452, 88, 205, 258),
+                (752, 88, 209, 258),
+                (1033, 88, 213, 258),
+                (1344, 88, 238, 257)
+            ],
+            "melee": [
+                (48, 446, 251, 257),
+                (340, 454, 305, 255)
+            ],
+            "hit": [
+                (42, 851, 199, 263),
+                (435, 857, 298, 256),
+                (775, 862, 287, 246)
+            ]
         }
         self.LEAF_GOBLIN_BOXES = {
-            "cloak": [(178, 517, 219, 196)],
-            "revealed": [(1059, 520, 333, 200)],
-            "throw": [(519, 473, 458, 236)]
+            "cloak": [(2176, 1251, 199, 250)],
+            "revealed": [(2500, 1239, 192, 262)],
+            "throw": [
+                (946, 452, 230, 257),
+                (1234, 454, 293, 255)
+            ]
         }
         
-        # Bounding boxes for Horned Beast (from golem_spritesheet.png)
+        # Bounding boxes for Horned Beast (from Horned_Beast.png)
         self.HORNED_BEAST_BOXES = {
-            "idle": [(130, 319, 390, 369)],
-            "slam": [(544, 400, 447, 288)],
-            "hit": [(1045, 388, 358, 303)]
+            "idle": [(49, 135, 372, 362)],
+            "slam": [
+                (84, 671, 499, 339),
+                (681, 652, 325, 358),
+                (1039, 695, 452, 314)
+            ],
+            "hit": [
+                (1751, 678, 342, 336),
+                (2112, 682, 342, 332)
+            ]
         }
 
 
@@ -112,7 +169,7 @@ class AssetsManager:
 
     def load_player_sprites(self, target_size=96):
         """Extracts and returns player animations, categorized by state and direction."""
-        sheet_path = join("assets", "Characters", "player_spritesheet.png")
+        sheet_path = join("assets", "Characters", "Samurai.png")
         sheet = self.load_image(sheet_path)
         
         animations = {}
@@ -135,7 +192,7 @@ class AssetsManager:
 
     def load_slime_sprites(self, target_size=64):
         """Extracts and returns slime enemy animations, categorized by state and direction."""
-        sheet_path = join("assets", "Enemies", "enemy_slime_spritesheet.png")
+        sheet_path = join("assets", "Enemies", "Slime.png")
         sheet = self.load_image(sheet_path)
         
         animations = {}
@@ -156,12 +213,9 @@ class AssetsManager:
         return animations
 
     def load_goblin_sprites(self, target_size=96):
-        """Extracts and returns Goblin animations from both standard and leaf sheets."""
-        std_sheet_path = join("assets", "Enemies", "goblin_spritesheet.png")
-        leaf_sheet_path = join("assets", "Enemies", "leaf_goblin_spritesheet.png")
-        
-        std_sheet = self.load_image(std_sheet_path)
-        leaf_sheet = self.load_image(leaf_sheet_path)
+        """Extracts and returns Goblin animations from Forest_Goblin.png."""
+        sheet_path = join("assets", "Enemies", "Forest_Goblin.png")
+        sheet = self.load_image(sheet_path)
         
         animations = {}
         
@@ -170,7 +224,7 @@ class AssetsManager:
             right_sprites = []
             left_sprites = []
             for box in boxes:
-                sprite = self.extract_and_scale_sprite(std_sheet, box, target_size)
+                sprite = self.extract_and_scale_sprite(sheet, box, target_size)
                 right_sprites.append(sprite)
                 left_sprites.append(pygame.transform.flip(sprite, True, False))
             animations[f"{state}_right"] = right_sprites
@@ -181,7 +235,7 @@ class AssetsManager:
             right_sprites = []
             left_sprites = []
             for box in boxes:
-                sprite = self.extract_and_scale_sprite(leaf_sheet, box, target_size)
+                sprite = self.extract_and_scale_sprite(sheet, box, target_size)
                 right_sprites.append(sprite)
                 left_sprites.append(pygame.transform.flip(sprite, True, False))
             animations[f"{state}_right"] = right_sprites
@@ -190,8 +244,8 @@ class AssetsManager:
         return animations
 
     def load_horned_beast_sprites(self, target_size=128):
-        """Extracts and returns Horned Beast animations from golem_spritesheet.png."""
-        sheet_path = join("assets", "Enemies", "golem_spritesheet.png")
+        """Extracts and returns Horned Beast animations from Horned_Beast.png."""
+        sheet_path = join("assets", "Enemies", "Horned_Beast.png")
         sheet = self.load_image(sheet_path)
         
         animations = {}

@@ -147,8 +147,7 @@ class Player(Entity):
         if self.hit and self.hit_timer > self.INVINCIBLE_DURATION - 20:
             # First few frames of damage show hit pose
             self.state = "hit"
-            # We reuse attack frame for hit pose or make it flash
-            sprite_sheet = "attack"
+            sprite_sheet = "hit"
         elif self.attacking:
             self.state = "attack"
             sprite_sheet = "attack"
@@ -367,10 +366,9 @@ class SpearProjectile(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         super().__init__()
         self.assets_manager = AssetsManager()
-        raw_img = self.assets_manager.load_projectile_image("goblin_spear.png")
-        
-        # Scale to 48x16
-        self.image = pygame.transform.scale(raw_img, (48, 16))
+        # Extract rock projectile from Forest_Goblin sheet
+        sheet = self.assets_manager.load_image("assets/Enemies/Forest_Goblin.png")
+        self.image = self.assets_manager.extract_and_scale_sprite(sheet, (1603, 493, 75, 70), 24)
         if direction == "left":
             self.image = pygame.transform.flip(self.image, True, False)
             
@@ -399,9 +397,9 @@ class RootSnare(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.assets_manager = AssetsManager()
-        sheet = self.assets_manager.load_image("assets/Enemies/root_golem_spritesheet.png")
-        # Extract index 0 root (858, 178, 51, 68), scale to size 48x64
-        self.image = self.assets_manager.extract_and_scale_sprite(sheet, (858, 178, 51, 68), 56)
+        sheet = self.assets_manager.load_image("assets/Enemies/Horned_Beast.png")
+        # Extract root snare from Horned_Beast.png and scale to size 56
+        self.image = self.assets_manager.extract_and_scale_sprite(sheet, (1541, 747, 157, 152), 56)
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.bottom = y
