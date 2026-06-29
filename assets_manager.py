@@ -121,6 +121,36 @@ class AssetsManager:
                 (2112, 682, 342, 332)
             ]
         }
+        
+        # Mapping from filename to sheet, coordinates, and original size
+        self.SHEET_MAPPINGS = {
+            # Terrain/Platforms (from Terrain/background_items.png)
+            "platform_grassy_dirt.png": ("Terrain/background_items.png", (47, 24, 141, 164), (359, 142)),
+            "platform_stone_brick.png": ("Terrain/background_items.png", (728, 42, 140, 146), (244, 99)),
+            "platform_wood.png": ("Terrain/background_items.png", (2247, 100, 358, 206), (228, 91)),
+            "platform_rope_bridge.png": ("Terrain/background_items.png", (2247, 100, 358, 206), (295, 130)),
+            "platform_mossy_stone.png": ("Terrain/background_items.png", (1408, 42, 141, 146), (256, 105)),
+            "platform_mossy_rock.png": ("Terrain/background_items.png", (1120, 1284, 277, 229), (265, 140)),
+            
+            # Hazards
+            "hazard_spikes.png": ("Terrain/background_items.png", (65, 1296, 222, 199), (204, 96)),
+            
+            # Interactive Objects
+            "interactive_jump_pad.png": ("Terrain/background_items.png", (1490, 1331, 111, 158), (129, 116)),
+            "interactive_mushroom.png": ("Terrain/background_items.png", (1643, 1372, 104, 117), (141, 123)),
+            
+            # Decorations
+            "decor_pine_trees.png": ("Terrain/background_items.png", (646, 597, 386, 617), (417, 374)),
+            "decor_deciduous_tree.png": ("Terrain/background_items.png", (47, 575, 593, 651), (470, 394)),
+            "decor_leafy_tree.png": ("Terrain/background_items.png", (1655, 1033, 170, 181), (227, 181)),
+            "decor_fallen_log.png": ("Terrain/background_items.png", (1421, 693, 368, 204), (530, 150)),
+            "decor_stump_logs.png": ("Terrain/background_items.png", (1842, 686, 282, 211), (465, 121)),
+            
+            # Collectibles (from Items/collectibles.png)
+            "item_coin.png": ("Items/collectibles.png", (30, 26, 102, 112), (105, 105)),
+            "ui_heart.png": ("Items/collectibles.png", (856, 169, 136, 123), (88, 80)),
+        }
+
 
 
     def load_image(self, path, convert_alpha=True):
@@ -273,21 +303,50 @@ class AssetsManager:
         dimmed.fill((85, 85, 105, 255), special_flags=pygame.BLEND_RGBA_MULT)
         return dimmed
 
+    def load_mapped_sprite(self, name):
+        """Checks SHEET_MAPPINGS, crops and scales from unified sheets, caching the result."""
+        cache_key = f"mapped_{name}"
+        if cache_key in self.image_cache:
+            return self.image_cache[cache_key]
+            
+        if name in self.SHEET_MAPPINGS:
+            sheet_subpath, box, target_size = self.SHEET_MAPPINGS[name]
+            sheet_path = join("assets", sheet_subpath)
+            sheet = self.load_image(sheet_path)
+            
+            x, y, w, h = box
+            sub_rect = pygame.Rect(x, y, w, h)
+            sub_surface = sheet.subsurface(sub_rect)
+            
+            scaled = pygame.transform.scale(sub_surface, target_size)
+            self.image_cache[cache_key] = scaled
+            return scaled
+            
+        return None
+
     def load_platform_image(self, name):
-        """Loads a platform image from assets/Forest/."""
+        """Loads a platform image from sheet if mapped, otherwise from assets/Forest/."""
+        img = self.load_mapped_sprite(name)
+        if img is not None:
+            return img
         path = join("assets", "Forest", name)
         return self.load_image(path)
 
     def load_hazard_image(self, name):
-        """Loads a hazard image from assets/Forest/."""
+        """Loads a hazard image from sheet if mapped, otherwise from assets/Forest/."""
+        img = self.load_mapped_sprite(name)
+        if img is not None:
+            return img
         path = join("assets", "Forest", name)
         return self.load_image(path)
 
     def load_decoration_image(self, name):
-        """Loads a decoration image from assets/Forest/ with desaturation."""
-        path = join("assets", "Forest", name)
-        img = self.load_image(path)
-        
+        """Loads a decoration image with desaturation."""
+        img = self.load_mapped_sprite(name)
+        if img is None:
+            path = join("assets", "Forest", name)
+            img = self.load_image(path)
+            
         # Dim decorations so players do not confuse them with collidable platforms
         dimmed = img.copy()
         dimmed.fill((135, 135, 155, 255), special_flags=pygame.BLEND_RGBA_MULT)

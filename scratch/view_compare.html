@@ -1,0 +1,40 @@
+<html>
+<head>
+    <title>Comparison Gallery</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
+        .row { margin-bottom: 30px; border-bottom: 1px solid #444; padding-bottom: 20px; }
+        h3 { color: #5dade2; margin-bottom: 10px; }
+        img { background: #333; padding: 10px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Visual Comparisons</h1>
+    <div id="gallery"></div>
+    <script>
+        const assets = [
+            "platform_grassy_dirt.png",
+            "platform_stone_brick.png",
+            "platform_wood.png",
+            "platform_rope_bridge.png",
+            "platform_mossy_stone.png",
+            "platform_mossy_rock.png",
+            "hazard_spikes.png",
+            "interactive_jump_pad.png",
+            "interactive_mushroom.png",
+            "decor_pine_trees.png",
+            "decor_deciduous_tree.png",
+            "decor_leafy_tree.png",
+            "decor_fallen_log.png",
+            "decor_stump_logs.png"
+        ];
+        const container = document.getElementById("gallery");
+        assets.forEach(a => {
+            const div = document.createElement("div");
+            div.className = "row";
+            div.innerHTML = `<h3>${a}</h3><img src="compare/${a}" alt="${a}">`;
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>
