@@ -298,6 +298,12 @@ class AssetsManager:
         path = path_bg if os.path.exists(path_bg) else path_items
         img = self.load_image(path)
         
+        # If background.jpg, crop only the forest portion (left 1/3 of the image)
+        if name == "background.jpg":
+            w, h = img.get_size()
+            forest_width = w // 3
+            img = img.subsurface(pygame.Rect(0, 0, forest_width, h))
+            
         # Apply a darkening filter to the background image so it sits back and platforms pop!
         dimmed = img.copy()
         dimmed.fill((85, 85, 105, 255), special_flags=pygame.BLEND_RGBA_MULT)

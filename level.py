@@ -10,7 +10,7 @@ class Level:
         # Level configurations
         self.player_spawn_x = 100
         self.player_spawn_y = 400
-        self.background_name = "Green.png"  # Default tiling background
+        self.background_name = "background.jpg"  # Default tiling background
         self.finish_x = 3200 # Reaching this X position triggers victory
         
         # Entity / Sprite lists
