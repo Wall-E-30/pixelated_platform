@@ -125,15 +125,15 @@ class AssetsManager:
         # Mapping from filename to sheet, coordinates, and original size
         self.SHEET_MAPPINGS = {
             # Terrain/Platforms (from Terrain/forest.png)
-            "platform_grassy_dirt.png": ("Terrain/forest.png", (47, 24, 141, 164), (359, 142)),
-            "platform_stone_brick.png": ("Terrain/forest.png", (728, 42, 140, 146), (244, 99)),
-            "platform_wood.png": ("Terrain/forest.png", (2247, 100, 358, 206), (228, 91)),
-            "platform_rope_bridge.png": ("Terrain/forest.png", (2247, 100, 358, 206), (295, 130)),
-            "platform_mossy_stone.png": ("Terrain/forest.png", (1408, 42, 141, 146), (256, 105)),
-            "platform_mossy_rock.png": ("Terrain/forest.png", (1120, 1284, 277, 229), (265, 140)),
+            "platform_grassy_dirt.png": ("Terrain/forest.png", (47, 24, 141, 164), (233, 92)),
+            "platform_stone_brick.png": ("Terrain/forest.png", (728, 42, 140, 146), (158, 64)),
+            "platform_wood.png": ("Terrain/forest.png", (2247, 100, 358, 206), (148, 59)),
+            "platform_rope_bridge.png": ("Terrain/forest.png", (2247, 100, 358, 206), (191, 84)),
+            "platform_mossy_stone.png": ("Terrain/forest.png", (1408, 42, 141, 146), (166, 68)),
+            "platform_mossy_rock.png": ("Terrain/forest.png", (1120, 1284, 277, 229), (172, 91)),
             
             # Hazards
-            "hazard_spikes.png": ("Terrain/forest.png", (65, 1296, 222, 199), (204, 96)),
+            "hazard_spikes.png": ("Terrain/forest.png", (65, 1296, 222, 199), (132, 62)),
             
             # Interactive Objects
             "interactive_jump_pad.png": ("Terrain/forest.png", (1490, 1331, 111, 158), (129, 116)),

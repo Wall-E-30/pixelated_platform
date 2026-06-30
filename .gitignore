@@ -151,3 +151,7 @@ Thumbs.db
 
 # Generated Asset Gallery
 gallery.html
+
+# Local test / scratch files
+scratch/
+tutorial.py

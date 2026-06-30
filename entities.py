@@ -455,6 +455,12 @@ class ForestGoblinEnemy(Entity):
         self.action_timer = 0
         self.revealed = False
 
+    def get_hitbox(self):
+        # Centered hitbox of size 48x64 (slightly narrower to avoid clipping weapon swings)
+        hitbox = pygame.Rect(0, 0, 48, 64)
+        hitbox.center = self.rect.center
+        return hitbox
+
     def take_damage(self, damage, source_x):
         # Cannot damage while in leaf cloak camouflage
         if self.state == "cloak":
