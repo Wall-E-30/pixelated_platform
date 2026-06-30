@@ -124,27 +124,27 @@ class AssetsManager:
         
         # Mapping from filename to sheet, coordinates, and original size
         self.SHEET_MAPPINGS = {
-            # Terrain/Platforms (from Terrain/background_items.png)
-            "platform_grassy_dirt.png": ("Terrain/background_items.png", (47, 24, 141, 164), (359, 142)),
-            "platform_stone_brick.png": ("Terrain/background_items.png", (728, 42, 140, 146), (244, 99)),
-            "platform_wood.png": ("Terrain/background_items.png", (2247, 100, 358, 206), (228, 91)),
-            "platform_rope_bridge.png": ("Terrain/background_items.png", (2247, 100, 358, 206), (295, 130)),
-            "platform_mossy_stone.png": ("Terrain/background_items.png", (1408, 42, 141, 146), (256, 105)),
-            "platform_mossy_rock.png": ("Terrain/background_items.png", (1120, 1284, 277, 229), (265, 140)),
+            # Terrain/Platforms (from Terrain/forest.png)
+            "platform_grassy_dirt.png": ("Terrain/forest.png", (47, 24, 141, 164), (359, 142)),
+            "platform_stone_brick.png": ("Terrain/forest.png", (728, 42, 140, 146), (244, 99)),
+            "platform_wood.png": ("Terrain/forest.png", (2247, 100, 358, 206), (228, 91)),
+            "platform_rope_bridge.png": ("Terrain/forest.png", (2247, 100, 358, 206), (295, 130)),
+            "platform_mossy_stone.png": ("Terrain/forest.png", (1408, 42, 141, 146), (256, 105)),
+            "platform_mossy_rock.png": ("Terrain/forest.png", (1120, 1284, 277, 229), (265, 140)),
             
             # Hazards
-            "hazard_spikes.png": ("Terrain/background_items.png", (65, 1296, 222, 199), (204, 96)),
+            "hazard_spikes.png": ("Terrain/forest.png", (65, 1296, 222, 199), (204, 96)),
             
             # Interactive Objects
-            "interactive_jump_pad.png": ("Terrain/background_items.png", (1490, 1331, 111, 158), (129, 116)),
-            "interactive_mushroom.png": ("Terrain/background_items.png", (1643, 1372, 104, 117), (141, 123)),
+            "interactive_jump_pad.png": ("Terrain/forest.png", (1490, 1331, 111, 158), (129, 116)),
+            "interactive_mushroom.png": ("Terrain/forest.png", (1643, 1372, 104, 117), (141, 123)),
             
             # Decorations
-            "decor_pine_trees.png": ("Terrain/background_items.png", (646, 597, 386, 617), (417, 374)),
-            "decor_deciduous_tree.png": ("Terrain/background_items.png", (47, 575, 593, 651), (470, 394)),
-            "decor_leafy_tree.png": ("Terrain/background_items.png", (1655, 1033, 170, 181), (227, 181)),
-            "decor_fallen_log.png": ("Terrain/background_items.png", (1421, 693, 368, 204), (530, 150)),
-            "decor_stump_logs.png": ("Terrain/background_items.png", (1842, 686, 282, 211), (465, 121)),
+            "decor_pine_trees.png": ("Terrain/forest.png", (646, 597, 386, 617), (188, 300)),
+            "decor_deciduous_tree.png": ("Terrain/forest.png", (47, 575, 593, 651), (246, 270)),
+            "decor_leafy_tree.png": ("Terrain/forest.png", (1655, 1033, 170, 181), (122, 130)),
+            "decor_fallen_log.png": ("Terrain/forest.png", (1421, 693, 368, 204), (162, 90)),
+            "decor_stump_logs.png": ("Terrain/forest.png", (1842, 686, 282, 211), (107, 80)),
             
             # Collectibles (from Items/collectibles.png)
             "item_coin.png": ("Items/collectibles.png", (30, 26, 102, 112), (105, 105)),
@@ -292,10 +292,10 @@ class AssetsManager:
         return animations
 
     def load_background_tile(self, name):
-        """Loads a background tile from assets/Background/ or assets/Forest/ with dimming."""
+        """Loads a background tile from assets/Background/ or assets/Items/ with dimming."""
         path_bg = join("assets", "Background", name)
-        path_forest = join("assets", "Forest", name)
-        path = path_bg if os.path.exists(path_bg) else path_forest
+        path_items = join("assets", "Items", name)
+        path = path_bg if os.path.exists(path_bg) else path_items
         img = self.load_image(path)
         
         # Apply a darkening filter to the background image so it sits back and platforms pop!
@@ -325,26 +325,26 @@ class AssetsManager:
         return None
 
     def load_platform_image(self, name):
-        """Loads a platform image from sheet if mapped, otherwise from assets/Forest/."""
+        """Loads a platform image from sheet if mapped, otherwise from assets/Items/."""
         img = self.load_mapped_sprite(name)
         if img is not None:
             return img
-        path = join("assets", "Forest", name)
+        path = join("assets", "Items", name)
         return self.load_image(path)
 
     def load_hazard_image(self, name):
-        """Loads a hazard image from sheet if mapped, otherwise from assets/Forest/."""
+        """Loads a hazard image from sheet if mapped, otherwise from assets/Items/."""
         img = self.load_mapped_sprite(name)
         if img is not None:
             return img
-        path = join("assets", "Forest", name)
+        path = join("assets", "Items", name)
         return self.load_image(path)
 
     def load_decoration_image(self, name):
         """Loads a decoration image with desaturation."""
         img = self.load_mapped_sprite(name)
         if img is None:
-            path = join("assets", "Forest", name)
+            path = join("assets", "Items", name)
             img = self.load_image(path)
             
         # Dim decorations so players do not confuse them with collidable platforms

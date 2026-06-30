@@ -33,16 +33,16 @@ class Level:
         
         # Spatially distribute background pine trees, deciduous trees, and leafy trees
         for x in range(150, total_width - 300, 800):
-            self.decorations.append(Decoration(x, 310, "decor_pine_trees.png", parallax_factor=0.3))
+            self.decorations.append(Decoration(x, None, "decor_pine_trees.png", parallax_factor=0.3, align_bottom=690))
         for x in range(500, total_width - 300, 800):
-            self.decorations.append(Decoration(x, 290, "decor_deciduous_tree.png", parallax_factor=0.4))
+            self.decorations.append(Decoration(x, None, "decor_deciduous_tree.png", parallax_factor=0.4, align_bottom=690))
         for x in range(300, total_width - 300, 900):
-            self.decorations.append(Decoration(x, 500, "decor_leafy_tree.png", parallax_factor=0.7))
+            self.decorations.append(Decoration(x, None, "decor_leafy_tree.png", parallax_factor=0.7, align_bottom=690))
             
         # 2. Foreground decorations (drawn behind entities)
         for x in range(750, total_width - 500, 1200):
-            self.decorations.append(Decoration(x, 550, "decor_fallen_log.png", parallax_factor=1.0))
-            self.decorations.append(Decoration(x + 250, 560, "decor_stump_logs.png", parallax_factor=1.0))
+            self.decorations.append(Decoration(x, None, "decor_fallen_log.png", parallax_factor=1.0, align_bottom=700))
+            self.decorations.append(Decoration(x + 250, None, "decor_stump_logs.png", parallax_factor=1.0, align_bottom=690))
             
         # 3. Start Chunk (0 to 500)
         # Safe spawning area

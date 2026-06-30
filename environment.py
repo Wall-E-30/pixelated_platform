@@ -28,7 +28,7 @@ class Hazard(pygame.sprite.Sprite):
 
 
 class Decoration(pygame.sprite.Sprite):
-    def __init__(self, x, y, image_name, parallax_factor=0.3):
+    def __init__(self, x, y, image_name, parallax_factor=0.3, align_bottom=680):
         """
         Non-collidable atmospheric decorations.
         parallax_factor: 0.0 means moves with screen (hud), 
@@ -38,6 +38,8 @@ class Decoration(pygame.sprite.Sprite):
         super().__init__()
         self.assets_manager = AssetsManager()
         self.image = self.assets_manager.load_decoration_image(image_name)
+        if y is None:
+            y = align_bottom - self.image.get_height()
         self.rect = self.image.get_rect(topleft=(x, y))
         self.parallax_factor = parallax_factor
 
