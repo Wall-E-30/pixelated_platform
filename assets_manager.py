@@ -140,11 +140,11 @@ class AssetsManager:
             "interactive_mushroom.png": ("Terrain/forest.png", (1643, 1372, 104, 117), (141, 123)),
             
             # Decorations
-            "decor_pine_trees.png": ("Terrain/forest.png", (646, 597, 386, 617), (188, 300)),
-            "decor_deciduous_tree.png": ("Terrain/forest.png", (47, 575, 593, 651), (246, 270)),
-            "decor_leafy_tree.png": ("Terrain/forest.png", (1655, 1033, 170, 181), (122, 130)),
-            "decor_fallen_log.png": ("Terrain/forest.png", (1421, 693, 368, 204), (162, 90)),
-            "decor_stump_logs.png": ("Terrain/forest.png", (1842, 686, 282, 211), (107, 80)),
+            "decor_pine_trees.png": ("Terrain/forest.png", (646, 597, 386, 617), (117, 187)),
+            "decor_deciduous_tree.png": ("Terrain/forest.png", (47, 575, 593, 651), (180, 197)),
+            "decor_leafy_tree.png": ("Terrain/forest.png", (1655, 1033, 170, 181), (51, 55)),
+            "decor_fallen_log.png": ("Terrain/forest.png", (1421, 693, 368, 204), (111, 62)),
+            "decor_stump_logs.png": ("Terrain/forest.png", (1842, 686, 282, 211), (85, 64)),
             
             # Collectibles (from Items/collectibles.png)
             "item_coin.png": ("Items/collectibles.png", (30, 26, 102, 112), (105, 105)),
