@@ -499,6 +499,11 @@ class ForestGoblinEnemy(Entity):
         self.y_vel = 0
 
     def loop(self, fps, platforms, player=None, projectiles=None):
+        # Jump if blocked horizontally (stuck against a step/wall) while trying to run
+        if self.state == "run" and self.x_vel == 0 and self.y_vel == 0 and not self.hit:
+            self.y_vel = -9.5
+            self.fall_count = 0
+
         # Apply gravity
         self.y_vel += self.GRAVITY
         if self.y_vel > 12:
