@@ -24,6 +24,18 @@ class Entity(pygame.sprite.Sprite):
     def get_hitbox(self):
         return self.rect
 
+    def is_about_to_fall(self, platforms):
+        """Checks if the entity is about to step off a platform into the void."""
+        hitbox = self.get_hitbox()
+        look_ahead = (hitbox.width // 2) + 5
+        direction_offset = look_ahead if self.direction == "right" else -look_ahead
+        test_rect = pygame.Rect(hitbox.x + direction_offset, hitbox.y + 10, hitbox.width, hitbox.height)
+        
+        for platform in platforms:
+            if test_rect.colliderect(platform.rect):
+                return False
+        return True
+
 
 class Player(Entity):
     GRAVITY = 0.5
@@ -296,7 +308,11 @@ class SlimeEnemy(Entity):
 
                 # If still walking, do normal patrol bounds check
                 if self.state == "walk":
-                    if self.rect.x < self.start_x - self.patrol_dist:
+                    # If about to fall into the void, turn around immediately
+                    if self.y_vel == 0 and self.is_about_to_fall(platforms):
+                        self.direction = "right" if self.direction == "left" else "left"
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+                    elif self.rect.x < self.start_x - self.patrol_dist:
                         self.direction = "right"
                         self.x_vel = self.speed
                     elif self.rect.x > self.start_x + self.patrol_dist:
@@ -581,6 +597,10 @@ class ForestGoblinEnemy(Entity):
                         if abs(player.rect.centerx - self.rect.centerx) < 15:
                             self.x_vel = 0
                             self.state = "idle"
+                        # If about to fall into the void, stand at the edge and wait/throw
+                        elif self.y_vel == 0 and self.is_about_to_fall(platforms):
+                            self.x_vel = 0
+                            self.state = "idle"
                         else:
                             self.x_vel = self.speed if self.direction == "right" else -self.speed
                     else:
@@ -750,8 +770,12 @@ class HornedBeastEnemy(Entity):
                     self.action_timer = 40
                     self.animation_count = 0
                 elif dist_to_player < 500:
-                    # Patrol slowly towards player
-                    self.x_vel = self.speed if self.direction == "right" else -self.speed
+                    # Patrol slowly towards player, but don't walk off ledges into the void
+                    if self.y_vel == 0 and self.is_about_to_fall(platforms):
+                        self.x_vel = 0
+                        self.state = "idle"
+                    else:
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
                 else:
                     self.x_vel = 0
                     
