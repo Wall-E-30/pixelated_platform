@@ -27,14 +27,20 @@ class Entity(pygame.sprite.Sprite):
     def is_about_to_fall(self, platforms):
         """Checks if the entity is about to step off a platform into the void."""
         hitbox = self.get_hitbox()
-        look_ahead = (hitbox.width // 2) + 5
-        direction_offset = look_ahead if self.direction == "right" else -look_ahead
-        test_rect = pygame.Rect(hitbox.x + direction_offset, hitbox.y + 10, hitbox.width, hitbox.height)
+        # Look ahead position just outside the front edge of the hitbox
+        if self.direction == "right":
+            check_x = hitbox.right + 5
+        else:
+            check_x = hitbox.left - 5 - 10  # 10 is the width of check_rect
+            
+        # Create a narrow sensor rectangle (10x10) shifted slightly downwards
+        check_rect = pygame.Rect(check_x, hitbox.bottom + 2, 10, 10)
         
+        # Check if this sensor overlaps with any platform
         for platform in platforms:
-            if test_rect.colliderect(platform.rect):
-                return False
-        return True
+            if check_rect.colliderect(platform.rect):
+                return False  # There is a platform underneath the next step
+        return True  # No platform underneath the next step (void)
 
 
 class Player(Entity):
@@ -293,20 +299,32 @@ class SlimeEnemy(Entity):
             if self.hit_timer <= 0:
                 self.hit = False
                 
-        # Simple AI Patrol and Leaping Attack
+        # Simple AI Patrol and Rushing Attack
         if not self.hit:
-            if self.state == "walk":
-                # Check distance to player for leap attack trigger
-                if player and self.attack_cooldown <= 0:
-                    dist_x = player.rect.centerx - self.rect.centerx
-                    dist_y = player.rect.centery - self.rect.centery
-                    if abs(dist_x) < 180 and abs(dist_y) < 100:
-                        self.state = "charge"
-                        self.charge_timer = 20  # Charge for ~0.33 seconds
-                        self.x_vel = 0
-                        self.direction = "right" if dist_x > 0 else "left"
+            # Check if player is visible (within horizontal distance of 250 and vertical of 100)
+            sees_player = False
+            if player:
+                dist_x = player.rect.centerx - self.rect.centerx
+                dist_y = player.rect.centery - self.rect.centery
+                if abs(dist_x) < 250 and abs(dist_y) < 100:
+                    sees_player = True
 
-                # If still walking, do normal patrol bounds check
+            if sees_player:
+                self.state = "rush"
+                # Determine direction to player
+                self.direction = "right" if dist_x > 0 else "left"
+                
+                # Check if about to fall in the void
+                if self.y_vel == 0 and self.is_about_to_fall(platforms):
+                    self.x_vel = 0
+                else:
+                    self.x_vel = 3.0 if self.direction == "right" else -3.0
+            else:
+                # If was rushing/charging/jumping, go back to walk (patrol)
+                if self.state in ["charge", "jump_attack", "rush"]:
+                    self.state = "walk"
+                    self.x_vel = self.speed if self.direction == "right" else -self.speed
+                
                 if self.state == "walk":
                     # If about to fall into the void, turn around immediately
                     if self.y_vel == 0 and self.is_about_to_fall(platforms):
@@ -323,21 +341,6 @@ class SlimeEnemy(Entity):
                     if self.x_vel == 0:
                         self.direction = "right" if self.direction == "left" else "left"
                         self.x_vel = self.speed if self.direction == "right" else -self.speed
-            
-            elif self.state == "charge":
-                self.x_vel = 0
-                self.charge_timer -= 1
-                if self.charge_timer <= 0:
-                    # Leap attack launched!
-                    self.state = "jump_attack"
-                    leap_dir = 1 if self.direction == "right" else -1
-                    self.x_vel = leap_dir * 6.5
-                    self.y_vel = -8.0
-                    self.fall_count = 0
-            
-            elif self.state == "jump_attack":
-                # Keep traveling forward during jump attack
-                pass
 
         self.update_sprite()
 
