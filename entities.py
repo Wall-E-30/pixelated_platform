@@ -164,7 +164,10 @@ class Player(Entity):
 
     def update_sprite(self):
         # Determine animation state
-        if self.hit and self.hit_timer > self.INVINCIBLE_DURATION - 20:
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.hit and self.hit_timer > self.INVINCIBLE_DURATION - 20:
             # First few frames of damage show hit pose
             self.state = "hit"
             sprite_sheet = "hit"
@@ -188,12 +191,23 @@ class Player(Entity):
         sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
         
         # Select frame
-        frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
         self.image = sprites[frame_idx]
-        self.animation_count += 1
         
         # Apply hit flashing effect
-        if self.hit:
+        if self.hit and self.state != "death":
             # Alternate drawing and not drawing (flashing)
             if (self.hit_timer // 4) % 2 == 0:
                 # Create a semi-transparent red tinted version
@@ -346,7 +360,10 @@ class SlimeEnemy(Entity):
 
     def update_sprite(self):
         # Select sheet
-        if self.state == "charge":
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.state == "charge":
             sprite_sheet = "idle"
         elif self.y_vel < 0:
             sprite_sheet = "jump"
@@ -360,12 +377,23 @@ class SlimeEnemy(Entity):
         sprite_sheet_name = f"{sprite_sheet}_{self.direction}"
         sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
         
-        frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
         self.image = sprites[frame_idx]
-        self.animation_count += 1
         
         # Flashing red if hit
-        if self.hit:
+        if self.hit and self.state != "death":
             if (self.hit_timer // 3) % 2 == 0:
                 tinted = self.image.copy()
                 tinted.fill((255, 100, 100, 150), special_flags=pygame.BLEND_RGBA_MULT)
@@ -613,7 +641,10 @@ class ForestGoblinEnemy(Entity):
         self.update_sprite()
 
     def update_sprite(self):
-        if self.state == "cloak":
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.state == "cloak":
             sprite_sheet = "cloak"
         elif self.state == "hit":
             sprite_sheet = "hit"
@@ -629,11 +660,22 @@ class ForestGoblinEnemy(Entity):
         sprite_sheet_name = f"{sprite_sheet}_{self.direction}"
         sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
         
-        frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
         self.image = sprites[frame_idx]
-        self.animation_count += 1
         
-        if self.hit:
+        if self.hit and self.state != "death":
             if (self.hit_timer // 3) % 2 == 0:
                 tinted = self.image.copy()
                 tinted.fill((255, 100, 100, 150), special_flags=pygame.BLEND_RGBA_MULT)
@@ -785,7 +827,10 @@ class HornedBeastEnemy(Entity):
         self.update_sprite()
 
     def update_sprite(self):
-        if self.state == "hit":
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.state == "hit":
             sprite_sheet = "hit"
         elif self.state in ["roar", "snare"]:
             sprite_sheet = "slam"
@@ -795,11 +840,22 @@ class HornedBeastEnemy(Entity):
         sprite_sheet_name = f"{sprite_sheet}_{self.direction}"
         sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
         
-        frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
         self.image = sprites[frame_idx]
-        self.animation_count += 1
         
-        if self.hit:
+        if self.hit and self.state != "death":
             if (self.hit_timer // 3) % 2 == 0:
                 tinted = self.image.copy()
                 tinted.fill((255, 100, 100, 150), special_flags=pygame.BLEND_RGBA_MULT)

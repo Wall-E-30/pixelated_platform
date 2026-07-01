@@ -116,40 +116,54 @@ class Game:
                         self.state = "menu"
 
     def update(self):
-        if self.state != "playing":
+        if self.state not in ["playing", "dying"]:
             return
             
-        # 1. Keyboard Movement Inputs for Player
-        keys = pygame.key.get_pressed()
-        self.player.x_vel = 0
-        
-        # Decay camera screenshake
-        if self.screenshake > 0:
-            self.screenshake -= 1
+        if self.state == "playing":
+            # 1. Keyboard Movement Inputs for Player
+            keys = pygame.key.get_pressed()
+            self.player.x_vel = 0
+            
+            # Decay camera screenshake
+            if self.screenshake > 0:
+                self.screenshake -= 1
 
-        # Block movement during hit knockback, attacking, or being snared
-        if self.player.state != "hit" and not self.player.attacking and not self.player.snared:
-            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-                self.player.x_vel = -5
-                if self.player.direction != "left":
-                    self.player.direction = "left"
-                    self.player.animation_count = 0
-            elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                self.player.x_vel = 5
-                if self.player.direction != "right":
-                    self.player.direction = "right"
-                    self.player.animation_count = 0
+            # Block movement during hit knockback, attacking, or being snared
+            if self.player.state != "hit" and not self.player.attacking and not self.player.snared:
+                if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+                    self.player.x_vel = -5
+                    if self.player.direction != "left":
+                        self.player.direction = "left"
+                        self.player.animation_count = 0
+                elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                    self.player.x_vel = 5
+                    if self.player.direction != "right":
+                        self.player.direction = "right"
+                        self.player.animation_count = 0
+        else: # state is "dying"
+            self.player.x_vel = 0
+            if self.screenshake > 0:
+                self.screenshake -= 1
 
         # 2. Physics & Movement Resolution
         handle_movement(self.player, self.level.platforms)
         
         for enemy in self.level.enemies:
-            handle_movement(enemy, self.level.platforms)
-            # Pass player reference and projectiles list to smart enemies (Goblin, Beast)
-            try:
-                enemy.loop(self.FPS, self.level.platforms, self.player, self.projectiles)
-            except TypeError:
-                enemy.loop(self.FPS, self.level.platforms)
+            if enemy.health > 0:
+                handle_movement(enemy, self.level.platforms)
+                # Pass player reference and projectiles list to smart enemies (Goblin, Beast)
+                try:
+                    enemy.loop(self.FPS, self.level.platforms, self.player, self.projectiles)
+                except TypeError:
+                    enemy.loop(self.FPS, self.level.platforms)
+            else:
+                # Enemy is dying: apply gravity and update sprite
+                enemy.y_vel += enemy.GRAVITY
+                if enemy.y_vel > 12:
+                    enemy.y_vel = 12
+                enemy.x_vel = 0
+                handle_movement(enemy, self.level.platforms)
+                enemy.update_sprite()
             
         # Update projectiles and traps
         for proj in self.projectiles:
@@ -162,93 +176,103 @@ class Game:
         # 3. Entity loops
         self.player.loop(self.FPS, self.level.platforms)
         
-        # 4. Check for Hazards (Spikes) Collisions
-        for hazard in self.level.hazards:
-            if pygame.sprite.collide_mask(self.player, hazard):
-                self.player.take_damage(1, hazard.rect.centerx)
-                
-        # 5. Check for Interactive Objects (springs, mushrooms)
-        for obj in self.level.interactive_objects:
-            obj.update()
-            if pygame.sprite.collide_mask(self.player, obj):
-                if self.player.y_vel >= -0.5: # only bounce when falling or moving down
-                    obj.trigger_bounce(self.player)
-                    self.score += 5 # small reward for bouncy physics trick
+        if self.state == "playing":
+            # 4. Check for Hazards (Spikes) Collisions
+            for hazard in self.level.hazards:
+                if pygame.sprite.collide_mask(self.player, hazard):
+                    self.player.take_damage(1, hazard.rect.centerx)
                     
-        # 6. Check for Collectible Items (coins, chests)
-        for item in self.level.collectibles:
-            if not item.collected and pygame.sprite.collide_mask(self.player, item):
-                if hasattr(item, "collect"):
-                    item.collect()
-                else:
-                    item.collected = True
-                if item.item_type == "coin":
-                    self.score += 10
-                elif item.item_type == "chest":
-                    self.score += 200
-                    # Chest is the final source code; complete the level!
-                    self.state = "victory"
-                
-        # 7. Check Player Attack overlap with Enemies / Projectiles
-        if self.player.attacking:
-            attack_rect = self.player.get_attack_rect()
-            if attack_rect:
-                # Attack enemies
-                for enemy in self.level.enemies:
-                    if attack_rect.colliderect(enemy.get_hitbox()):
-                        # Goblins in leaf cloak are immune
-                        if hasattr(enemy, "state") and enemy.state == "cloak":
-                            continue
-                        enemy.take_damage(1, self.player.rect.centerx)
-                        if enemy.health <= 0:
-                            self.score += 50
+            # 5. Check for Interactive Objects (springs, mushrooms)
+            for obj in self.level.interactive_objects:
+                obj.update()
+                if pygame.sprite.collide_mask(self.player, obj):
+                    if self.player.y_vel >= -0.5: # only bounce when falling or moving down
+                        obj.trigger_bounce(self.player)
+                        self.score += 5 # small reward for bouncy physics trick
+                        
+            # 6. Check for Collectible Items (coins, chests)
+            for item in self.level.collectibles:
+                if not item.collected and pygame.sprite.collide_mask(self.player, item):
+                    if hasattr(item, "collect"):
+                        item.collect()
+                    else:
+                        item.collected = True
+                    if item.item_type == "coin":
+                        self.score += 10
+                    elif item.item_type == "chest":
+                        self.score += 200
+                        # Chest is the final source code; complete the level!
+                        self.state = "victory"
+                    
+            # 7. Check Player Attack overlap with Enemies / Projectiles
+            if self.player.attacking:
+                attack_rect = self.player.get_attack_rect()
+                if attack_rect:
+                    # Attack enemies
+                    for enemy in self.level.enemies:
+                        if enemy.health > 0 and attack_rect.colliderect(enemy.get_hitbox()):
+                            # Goblins in leaf cloak are immune
+                            if hasattr(enemy, "state") and enemy.state == "cloak":
+                                continue
+                            enemy.take_damage(1, self.player.rect.centerx)
+                            if enemy.health <= 0:
+                                self.score += 50
+                                
+                    # Deflect spears
+                    for proj in self.projectiles:
+                        if type(proj).__name__ == "SpearProjectile":
+                            if attack_rect.colliderect(proj.rect):
+                                proj.alive = False
+                                self.score += 25 # Deflection reward!
                             
-                # Deflect spears
+            # 8. Check Enemy attack contact on Player (standard contact damage)
+            if not self.player.hit:
+                # Check contact with active enemies
+                for enemy in self.level.enemies:
+                    if enemy.health > 0:
+                        if hasattr(enemy, "state") and enemy.state == "cloak":
+                            continue # Cloaked goblins don't deal damage by contact
+                        if self.player.get_hitbox().colliderect(enemy.get_hitbox()):
+                            self.player.take_damage(1, enemy.rect.centerx)
+                        
+                # Check contact with projectiles (Spears)
                 for proj in self.projectiles:
                     if type(proj).__name__ == "SpearProjectile":
-                        if attack_rect.colliderect(proj.rect):
+                        if pygame.sprite.collide_mask(self.player, proj):
+                            self.player.take_damage(1, proj.rect.centerx)
                             proj.alive = False
-                            self.score += 25 # Deflection reward!
-                        
-        # Remove dead enemies
-        self.level.enemies = [e for e in self.level.enemies if e.health > 0]
-        
-        # 8. Check Enemy attack contact on Player (standard contact damage)
-        if not self.player.hit:
-            # Check contact with active enemies
-            for enemy in self.level.enemies:
-                if hasattr(enemy, "state") and enemy.state == "cloak":
-                    continue # Cloaked goblins don't deal damage by contact
-                if self.player.get_hitbox().colliderect(enemy.get_hitbox()):
-                    self.player.take_damage(1, enemy.rect.centerx)
-                    
-            # Check contact with projectiles (Spears)
-            for proj in self.projectiles:
-                if type(proj).__name__ == "SpearProjectile":
-                    if pygame.sprite.collide_mask(self.player, proj):
-                        self.player.take_damage(1, proj.rect.centerx)
-                        proj.alive = False
 
-        # 7. Check Boundaries (Falling out of screen or level)
-        if self.player.rect.top > self.HEIGHT + 100:
-            self.player.take_damage(5, self.player.rect.centerx) # Instantly die if fall in pit
-            
-        # Check Checkpoint Collisions
-        for cp in self.level.checkpoints:
-            if pygame.sprite.collide_mask(self.player, cp):
-                if not cp.activated:
-                    cp.activate()
-                    self.last_checkpoint = (cp.rect.centerx, self.level.ground_y - 120)
-                    self.score += 50
-                    
-        # Check Health / Game Over
-        if self.player.health <= 0:
-            self.state = "game_over"
-            
-        # Check Victory Checkpoint
-        if self.player.rect.x >= self.level.finish_x:
-            self.state = "victory"
+            # Check Checkpoint Collisions
+            for cp in self.level.checkpoints:
+                if pygame.sprite.collide_mask(self.player, cp):
+                    if not cp.activated:
+                        cp.activate()
+                        self.last_checkpoint = (cp.rect.centerx, self.level.ground_y - 120)
+                        self.score += 50
 
+            # Check boundaries
+            if self.player.rect.top > self.HEIGHT + 100:
+                self.player.health = 0
+                self.state = "game_over"
+
+            # Check Health / Dying state transition
+            if self.player.health <= 0:
+                self.state = "dying"
+                self.player.state = "death"
+                self.player.animation_count = 0
+                self.player.death_animation_finished = False
+                
+            # Check Victory Checkpoint
+            if self.player.rect.x >= self.level.finish_x:
+                self.state = "victory"
+
+        else: # state is "dying"
+            if getattr(self.player, "death_animation_finished", False):
+                self.state = "game_over"
+
+        # Remove dead enemies that finished their death animation
+        self.level.enemies = [e for e in self.level.enemies if not (e.health <= 0 and getattr(e, "death_animation_finished", False))]
+            
         # 8. Parallax Camera Scrolling
         # Horizontal scrolling
         if ((self.player.rect.right - self.offset_x >= self.WIDTH - self.SCROLL_AREA_WIDTH) and self.player.x_vel > 0):
@@ -364,7 +388,7 @@ class Game:
         self.player.rect.y += shake_y
 
         # 9. Draw HUD overlays
-        if self.state == "playing":
+        if self.state in ["playing", "dying"]:
             self.draw_hud()
         
         # 10. State Screens
