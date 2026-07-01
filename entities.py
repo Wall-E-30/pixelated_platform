@@ -26,7 +26,7 @@ class Entity(pygame.sprite.Sprite):
 
 
 class Player(Entity):
-    GRAVITY = 0.8
+    GRAVITY = 0.5
     ANIMATION_DELAY = 5
     INVINCIBLE_DURATION = 90  # Frames of invincibility after hit
 
@@ -59,8 +59,8 @@ class Player(Entity):
     def jump(self):
         # Jump or Double Jump (cannot jump if snared)
         if self.jump_count < 2 and not self.snared:
-            # -8 or -9 vertical velocity
-            self.y_vel = -8.5
+            # Crisp jumping velocity matching standard gravity
+            self.y_vel = -10.5
             self.jump_count += 1
             self.fall_count = 0
             self.animation_count = 0
@@ -115,7 +115,9 @@ class Player(Entity):
 
     def loop(self, fps, platforms):
         # Apply gravity
-        self.y_vel += min(0.9, (self.fall_count / fps) * self.GRAVITY)
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
         self.fall_count += 1
         
         # Handle snare constraint
@@ -202,7 +204,7 @@ class Player(Entity):
 
 
 class SlimeEnemy(Entity):
-    GRAVITY = 0.8
+    GRAVITY = 0.5
     ANIMATION_DELAY = 6
 
     def __init__(self, x, y, patrol_dist=200):
@@ -264,7 +266,9 @@ class SlimeEnemy(Entity):
 
     def loop(self, fps, platforms, player=None, projectiles=None):
         # Apply gravity
-        self.y_vel += min(0.9, (self.fall_count / fps) * self.GRAVITY)
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
         self.fall_count += 1
         
         # Decelerate cooldown
@@ -426,7 +430,7 @@ class RootSnare(pygame.sprite.Sprite):
 
 
 class ForestGoblinEnemy(Entity):
-    GRAVITY = 0.8
+    GRAVITY = 0.5
     ANIMATION_DELAY = 6
 
     def __init__(self, x, y, patrol_dist=200):
@@ -496,7 +500,9 @@ class ForestGoblinEnemy(Entity):
 
     def loop(self, fps, platforms, player=None, projectiles=None):
         # Apply gravity
-        self.y_vel += min(0.9, (self.fall_count / fps) * self.GRAVITY)
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
         self.fall_count += 1
         
         # Handle hit recovery
@@ -520,11 +526,10 @@ class ForestGoblinEnemy(Entity):
                     
             # State 2: Active Behaviors
             elif self.state in ["idle", "run", "throw", "melee"]:
-                # Turn to face player
-                if player.rect.centerx > self.rect.centerx:
-                    self.direction = "right"
-                else:
-                    self.direction = "left"
+                # Turn to face player if not extremely close horizontally to prevent rapid jittering
+                dx = player.rect.centerx - self.rect.centerx
+                if abs(dx) > 10:
+                    self.direction = "right" if dx > 0 else "left"
                     
                 # Decrement shoot cooldown
                 if self.shoot_cooldown > 0:
@@ -565,9 +570,14 @@ class ForestGoblinEnemy(Entity):
                         self.animation_count = 0
                         
                     # Chase player if revealed but too far for melee
-                    elif dist_to_player > 120 and dist_to_player < 400:
+                    elif dist_to_player >= 60 and dist_to_player < 400:
                         self.state = "run"
-                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+                        # If almost directly aligned horizontally, stand still to prevent jitter
+                        if abs(player.rect.centerx - self.rect.centerx) < 15:
+                            self.x_vel = 0
+                            self.state = "idle"
+                        else:
+                            self.x_vel = self.speed if self.direction == "right" else -self.speed
                     else:
                         self.state = "idle"
                         self.x_vel = 0
@@ -608,7 +618,7 @@ class ForestGoblinEnemy(Entity):
 
 
 class HornedBeastEnemy(Entity):
-    GRAVITY = 0.8
+    GRAVITY = 0.5
     ANIMATION_DELAY = 8
 
     def __init__(self, x, y):
@@ -668,7 +678,9 @@ class HornedBeastEnemy(Entity):
 
     def loop(self, fps, platforms, player=None, projectiles=None):
         # Apply gravity
-        self.y_vel += min(0.9, (self.fall_count / fps) * self.GRAVITY)
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
         self.fall_count += 1
         
         if self.hit:
