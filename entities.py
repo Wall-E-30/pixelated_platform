@@ -315,7 +315,7 @@ class SlimeEnemy(Entity):
                 self.direction = "right" if dist_x > 0 else "left"
                 
                 # Check if about to fall in the void
-                if self.y_vel == 0 and self.is_about_to_fall(platforms):
+                if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
                     self.x_vel = 0
                 else:
                     self.x_vel = 3.0 if self.direction == "right" else -3.0
@@ -327,7 +327,7 @@ class SlimeEnemy(Entity):
                 
                 if self.state == "walk":
                     # If about to fall into the void, turn around immediately
-                    if self.y_vel == 0 and self.is_about_to_fall(platforms):
+                    if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
                         self.direction = "right" if self.direction == "left" else "left"
                         self.x_vel = self.speed if self.direction == "right" else -self.speed
                     elif self.rect.x < self.start_x - self.patrol_dist:
@@ -601,7 +601,7 @@ class ForestGoblinEnemy(Entity):
                             self.x_vel = 0
                             self.state = "idle"
                         # If about to fall into the void, stand at the edge and wait/throw
-                        elif self.y_vel == 0 and self.is_about_to_fall(platforms):
+                        elif self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
                             self.x_vel = 0
                             self.state = "idle"
                         else:
@@ -774,7 +774,7 @@ class HornedBeastEnemy(Entity):
                     self.animation_count = 0
                 elif dist_to_player < 500:
                     # Patrol slowly towards player, but don't walk off ledges into the void
-                    if self.y_vel == 0 and self.is_about_to_fall(platforms):
+                    if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
                         self.x_vel = 0
                         self.state = "idle"
                     else:

@@ -140,3 +140,27 @@ class InteractiveObject(pygame.sprite.Sprite):
         else:
             win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
 
+
+class Checkpoint(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        import os
+        self.assets_manager = AssetsManager()
+        raw_image = self.assets_manager.load_image(os.path.join("assets", "Items", "decor_checkpoint_flag.png"))
+        self.image = pygame.transform.scale(raw_image, (48, 54))
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.activated = False
+
+    def activate(self):
+        if not self.activated:
+            self.activated = True
+            # Apply a green tint/filter to show it is activated
+            activated_image = self.image.copy()
+            activated_image.fill((100, 255, 100, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            self.image = activated_image
+
+    def draw(self, win, offset_x):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+
+

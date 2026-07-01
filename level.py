@@ -20,6 +20,7 @@ class Level:
         self.enemies = []
         self.collectibles = []
         self.interactive_objects = []
+        self.checkpoints = []
         
         self.setup_level()
 
@@ -36,10 +37,11 @@ class Level:
         # Base Y position for ground platforms
         # Keep 15 pixels of overlap/sink for visual seamlessness
         ground_y = 800 - h_dirt + 15
+        self.ground_y = ground_y
         
         # 1. Background decorations (placed globally across the whole generated level width)
-        # Total Level Width = Start Chunk (500) + 3 Middle Chunks (3 * 800 = 2400) + End Chunk (500) = 3400
-        total_width = 3400
+        # Total Level Width = Start Chunk (500) + 6 Middle Chunks (6 * 800 = 4800) + 2 Checkpoints (2 * 233 = 466) + End Chunk (500) = 6266
+        total_width = 6500
         
         # Spatially distribute background pine trees, deciduous trees, and leafy trees
         for x in range(150, total_width - 300, 800):
@@ -147,7 +149,7 @@ class Level:
             # Horned Beast Mini-Boss guarding the other side
             self.enemies.append(HornedBeastEnemy(base_x + w_dirt + 240, ground_y - 120))
 
-        # Randomly choose and construct 3 middle chunks
+        # Randomly choose and construct 6 middle chunks
         chunk_generators = [
             generate_flat_chunk, 
             generate_spike_gap_chunk, 
@@ -156,13 +158,22 @@ class Level:
         ]
         
         # Ensure we get a good variety of different middle chunks
-        chosen_generators = [random.choice(chunk_generators) for _ in range(3)]
+        chosen_generators = [random.choice(chunk_generators) for _ in range(6)]
         
-        for generator in chosen_generators:
+        from environment import Checkpoint
+        
+        for idx, generator in enumerate(chosen_generators):
             generator(current_x)
             current_x += chunk_width
             
-        # 5. End Chunk (starting at current_x, which is 500 + 2400 = 2900)
+            # Place a checkpoint flag after chunk 2 (index 1) and chunk 4 (index 3)
+            if idx in [1, 3]:
+                # Place a flat ground platform for the checkpoint to stand safely on
+                self.platforms.append(Platform(current_x, ground_y, "platform_grassy_dirt.png"))
+                self.checkpoints.append(Checkpoint(current_x + 100, ground_y - 54))
+                current_x += w_dirt
+            
+        # 5. End Chunk (starting at current_x)
         self.platforms.extend([
             Platform(current_x, ground_y, "platform_grassy_dirt.png"),
             Platform(current_x + w_dirt, ground_y, "platform_grassy_dirt.png")

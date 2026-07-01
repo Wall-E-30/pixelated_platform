@@ -21,15 +21,30 @@ class Game:
         # Game State
         # menu, story_intro, playing, game_over, victory
         self.state = "menu"
+        self.last_checkpoint = None  # Track the current active checkpoint spawn point
         self.reset_game()
 
-    def reset_game(self):
+    def reset_game(self, checkpoint_spawn=None):
         # Reset level, player, camera
         self.level = Level(self.WIDTH, self.HEIGHT)
-        self.player = Player(self.level.player_spawn_x, self.level.player_spawn_y)
+        
+        if checkpoint_spawn:
+            spawn_x, spawn_y = checkpoint_spawn
+            # Visual activation for checkpoints at or before checkpoint_spawn
+            for cp in self.level.checkpoints:
+                if cp.rect.centerx <= spawn_x:
+                    cp.activate()
+        else:
+            spawn_x = self.level.player_spawn_x
+            spawn_y = self.level.player_spawn_y
+            
+        self.player = Player(spawn_x, spawn_y)
         self.player.game_ref = self  # Give player access to screenshake/score
         
-        self.offset_x = 0
+        if checkpoint_spawn:
+            self.offset_x = max(0, min(spawn_x - self.WIDTH // 2, self.level.finish_x + 300 - self.WIDTH))
+        else:
+            self.offset_x = 0
         self.offset_y = 0
         self.screenshake = 0
         self.score = 0
@@ -78,11 +93,25 @@ class Game:
                         self.player.jump()
                     elif event.key in [pygame.K_x, pygame.K_j]:
                         self.player.attack()
-                elif self.state in ["game_over", "victory"]:
-                    if event.key == pygame.K_r:
+                elif self.state == "game_over":
+                    if event.key == pygame.K_c:
+                        self.reset_game(self.last_checkpoint)
+                        self.state = "playing"
+                    elif event.key == pygame.K_n:
+                        self.last_checkpoint = None
                         self.reset_game()
                         self.state = "playing"
                     elif event.key == pygame.K_m:
+                        self.last_checkpoint = None
+                        self.reset_game()
+                        self.state = "menu"
+                elif self.state == "victory":
+                    if event.key == pygame.K_r:
+                        self.last_checkpoint = None
+                        self.reset_game()
+                        self.state = "playing"
+                    elif event.key == pygame.K_m:
+                        self.last_checkpoint = None
                         self.reset_game()
                         self.state = "menu"
 
@@ -204,6 +233,14 @@ class Game:
         if self.player.rect.top > self.HEIGHT + 100:
             self.player.take_damage(5, self.player.rect.centerx) # Instantly die if fall in pit
             
+        # Check Checkpoint Collisions
+        for cp in self.level.checkpoints:
+            if pygame.sprite.collide_mask(self.player, cp):
+                if not cp.activated:
+                    cp.activate()
+                    self.last_checkpoint = (cp.rect.centerx, self.level.ground_y - 120)
+                    self.score += 50
+                    
         # Check Health / Game Over
         if self.player.health <= 0:
             self.state = "game_over"
@@ -289,6 +326,10 @@ class Game:
         # 3. Draw Platforms & Spikes (with screenshake offsets)
         for platform in self.level.platforms:
             self.window.blit(platform.image, (platform.rect.x - self.offset_x - shake_x, platform.rect.y - shake_y))
+            
+        # Draw Checkpoints
+        for cp in self.level.checkpoints:
+            cp.draw(self.window, self.offset_x + shake_x)
             
         for hazard in self.level.hazards:
             self.window.blit(hazard.image, (hazard.rect.x - self.offset_x - shake_x, hazard.rect.y - shake_y))
@@ -421,18 +462,33 @@ class Game:
             self.window.blit(txt_action, action_rect)
 
     def draw_game_over_screen(self):
-        box_x, box_y = self.draw_overlay_box(600, 300, "HERO DEFEATED")
+        box_x, box_y = self.draw_overlay_box(650, 340, "HERO DEFEATED")
         
         font_normal = pygame.font.SysFont("Consolas", 20, bold=True)
-        font_restart = pygame.font.SysFont("Consolas", 22, bold=True)
+        font_action = pygame.font.SysFont("Consolas", 22, bold=True)
         
         lbl_msg = font_normal.render("You fell victim to the forest hazards...", True, (255, 100, 100))
-        lbl_msg_rect = lbl_msg.get_rect(center=(self.WIDTH // 2, box_y + 110))
+        lbl_msg_rect = lbl_msg.get_rect(center=(self.WIDTH // 2, box_y + 90))
         self.window.blit(lbl_msg, lbl_msg_rect)
         
-        lbl_restart = font_restart.render("Press 'R' to Restart or 'M' for Menu", True, (255, 255, 255))
-        lbl_restart_rect = lbl_restart.get_rect(center=(self.WIDTH // 2, box_y + 200))
-        self.window.blit(lbl_restart, lbl_restart_rect)
+        # Check if checkpoint is available
+        if self.last_checkpoint:
+            lbl_checkpoint = font_action.render("Press 'C' to Start from Checkpoint", True, (0, 255, 120))
+            lbl_newgame = font_action.render("Press 'N' to Start New Game", True, (255, 255, 255))
+        else:
+            lbl_checkpoint = font_action.render("Press 'N' to Restart Game", True, (0, 255, 120))
+            lbl_newgame = font_action.render("", True, (255, 255, 255))
+            
+        lbl_menu = font_action.render("Press 'M' for Main Menu", True, (255, 200, 50))
+        
+        cp_rect = lbl_checkpoint.get_rect(center=(self.WIDTH // 2, box_y + 160))
+        ng_rect = lbl_newgame.get_rect(center=(self.WIDTH // 2, box_y + 210))
+        mn_rect = lbl_menu.get_rect(center=(self.WIDTH // 2, box_y + 260))
+        
+        self.window.blit(lbl_checkpoint, cp_rect)
+        if self.last_checkpoint:
+            self.window.blit(lbl_newgame, ng_rect)
+        self.window.blit(lbl_menu, mn_rect)
 
     def draw_victory_screen(self):
         box_x, box_y = self.draw_overlay_box(650, 360, "QUEST COMPLETE!")
