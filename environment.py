@@ -95,21 +95,30 @@ class CollectibleItem(pygame.sprite.Sprite):
 
 
 class InteractiveObject(pygame.sprite.Sprite):
-    def __init__(self, x, y, obj_type="jump_pad"):
+    def __init__(self, x, y, obj_type="jump_pad", theme="forest"):
         super().__init__()
         self.assets_manager = AssetsManager()
         self.obj_type = obj_type
         
         if obj_type == "jump_pad":
-            raw_image = self.assets_manager.load_platform_image("interactive_jump_pad.png")
+            if theme == "desert":
+                raw_image = self.assets_manager.load_platform_image("interactive_desert_spring.png")
+            else:
+                raw_image = self.assets_manager.load_platform_image("interactive_jump_pad.png")
             self.image = pygame.transform.scale(raw_image, (48, 48))
             self.bounce_vel = -14.5
         elif obj_type == "mushroom":
-            raw_image = self.assets_manager.load_platform_image("interactive_mushroom.png")
+            if theme == "desert":
+                raw_image = self.assets_manager.load_platform_image("interactive_desert_spring.png")
+            else:
+                raw_image = self.assets_manager.load_platform_image("interactive_mushroom.png")
             self.image = pygame.transform.scale(raw_image, (48, 48))
             self.bounce_vel = -11.0
         else:
-            raw_image = self.assets_manager.load_platform_image("interactive_jump_pad.png")
+            if theme == "desert":
+                raw_image = self.assets_manager.load_platform_image("interactive_desert_spring.png")
+            else:
+                raw_image = self.assets_manager.load_platform_image("interactive_jump_pad.png")
             self.image = pygame.transform.scale(raw_image, (48, 48))
             self.bounce_vel = -12.0
             

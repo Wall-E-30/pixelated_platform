@@ -7,7 +7,7 @@ def main():
     # Establish the resolution
     WIDTH, HEIGHT = 1000, 800
     window = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Chronicles of the Forest")
+    pygame.display.set_caption("Chronicles of the Pixel Realm")
     
     # Start the game
     game = Game(window)

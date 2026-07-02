@@ -866,3 +866,539 @@ class HornedBeastEnemy(Entity):
     def draw(self, win, offset_x):
         win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
 
+
+class DesertAxeProjectile(pygame.sprite.Sprite):
+    def __init__(self, x, y, direction):
+        super().__init__()
+        self.assets_manager = AssetsManager()
+        sheet = self.assets_manager.load_image("assets/Enemies/desert_enemy_1.png")
+        self.orig_image = self.assets_manager.extract_and_scale_sprite(sheet, (872, 200, 60, 65), 32)
+        if direction == "left":
+            self.orig_image = pygame.transform.flip(self.orig_image, True, False)
+            
+        self.image = self.orig_image
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.direction = direction
+        self.speed = 6.5
+        self.angle = 0
+        self.mask = pygame.mask.from_surface(self.image)
+        self.alive = True
+
+    def loop(self, platforms):
+        dx = self.speed if self.direction == "right" else -self.speed
+        self.rect.x += dx
+        
+        # Rotate to make the axe spin
+        self.angle = (self.angle - 15) % 360 if self.direction == "right" else (self.angle + 15) % 360
+        self.image = pygame.transform.rotate(self.orig_image, self.angle)
+        
+        # Keep center aligned
+        old_center = self.rect.center
+        self.rect = self.image.get_rect()
+        self.rect.center = old_center
+        self.mask = pygame.mask.from_surface(self.image)
+        
+        # Check collision with platforms
+        for platform in platforms:
+            if self.rect.colliderect(platform.rect):
+                self.alive = False
+                break
+
+    def draw(self, win, offset_x):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+
+
+class DesertSandTrap(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.assets_manager = AssetsManager()
+        sheet = self.assets_manager.load_image("assets/Enemies/desert_enemy_small.png")
+        self.image = self.assets_manager.extract_and_scale_sprite(sheet, (19, 940, 91, 72), 56)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x
+        self.rect.bottom = y
+        self.mask = pygame.mask.from_surface(self.image)
+        
+        self.lifetime = 110
+        self.snared_player = False
+        self.alive = True
+
+    def loop(self, player):
+        self.lifetime -= 1
+        if self.lifetime <= 0:
+            self.alive = False
+            
+        if not self.snared_player and pygame.sprite.collide_mask(self, player):
+            player.snared = True
+            player.snare_timer = 90
+            self.snared_player = True
+            self.alive = False
+
+    def draw(self, win, offset_x):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+
+
+class DesertAutomatonEnemy(Entity):
+    GRAVITY = 0.5
+    ANIMATION_DELAY = 6
+
+    def __init__(self, x, y, patrol_dist=200):
+        super().__init__(x, y, 64, 64)
+        self.assets_manager = AssetsManager()
+        self.sprites = self.assets_manager.load_desert_automaton_sprites(target_size=64)
+        
+        self.image = self.sprites["idle_right"][0]
+        self.update_mask()
+        
+        self.health = 2
+        self.speed = 2.0
+        self.x_vel = -self.speed
+        self.direction = "left"
+        self.state = "walk"
+        
+        self.start_x = x
+        self.patrol_dist = patrol_dist
+        self.animation_count = 0
+        
+        self.hit = False
+        self.hit_timer = 0
+        self.charge_timer = 0
+        self.attack_cooldown = 0
+
+    def take_damage(self, damage, source_x):
+        if not self.hit:
+            self.health -= damage
+            self.hit = True
+            self.hit_timer = 30
+            
+            knockback_dir = 1 if self.rect.centerx > source_x else -1
+            self.x_vel = knockback_dir * 5
+            self.y_vel = -4
+            self.fall_count = 0
+            self.state = "walk"
+
+    def get_hitbox(self):
+        hitbox = pygame.Rect(0, 0, 48, 48)
+        hitbox.center = self.rect.center
+        return hitbox
+
+    def landed(self):
+        self.fall_count = 0
+        self.y_vel = 0
+        self.state = "walk"
+        self.x_vel = self.speed if self.direction == "right" else -self.speed
+
+    def hit_head(self):
+        self.y_vel = 0
+
+    def loop(self, fps, platforms, player=None, projectiles=None):
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
+        self.fall_count += 1
+        
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= 1
+
+        if self.hit:
+            self.hit_timer -= 1
+            if self.hit_timer <= 0:
+                self.hit = False
+                
+        if not self.hit:
+            sees_player = False
+            if player:
+                dist_x = player.rect.centerx - self.rect.centerx
+                dist_y = player.rect.centery - self.rect.centery
+                if abs(dist_x) < 250 and abs(dist_y) < 100:
+                    sees_player = True
+
+            if sees_player:
+                self.state = "rush"
+                self.direction = "right" if dist_x > 0 else "left"
+                
+                if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
+                    self.x_vel = 0
+                else:
+                    self.x_vel = 3.2 if self.direction == "right" else -3.2
+            else:
+                if self.state in ["rush"]:
+                    self.state = "walk"
+                    self.x_vel = self.speed if self.direction == "right" else -self.speed
+                
+                if self.state == "walk":
+                    if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
+                        self.direction = "right" if self.direction == "left" else "left"
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+                    elif self.rect.x < self.start_x - self.patrol_dist:
+                        self.direction = "right"
+                        self.x_vel = self.speed
+                    elif self.rect.x > self.start_x + self.patrol_dist:
+                        self.direction = "left"
+                        self.x_vel = -self.speed
+                        
+                    if self.x_vel == 0:
+                        self.direction = "right" if self.direction == "left" else "left"
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+
+        self.update_sprite()
+
+    def update_sprite(self):
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.state == "rush":
+            sprite_sheet = "melee"
+        elif self.x_vel != 0:
+            sprite_sheet = "walk"
+        else:
+            sprite_sheet = "idle"
+            
+        sprite_sheet_name = f"{sprite_sheet}_{self.direction}"
+        sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
+        
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
+        self.image = sprites[frame_idx]
+        
+        if self.hit and self.state != "death":
+            if (self.hit_timer // 3) % 2 == 0:
+                tinted = self.image.copy()
+                tinted.fill((255, 100, 100, 150), special_flags=pygame.BLEND_RGBA_MULT)
+                self.image = tinted
+                
+        self.update_mask()
+
+    def draw(self, win, offset_x):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+
+
+class DesertAxeGolemEnemy(Entity):
+    GRAVITY = 0.5
+    ANIMATION_DELAY = 12
+
+    def __init__(self, x, y, patrol_dist=200):
+        super().__init__(x, y, 80, 80)
+        self.assets_manager = AssetsManager()
+        self.sprites = self.assets_manager.load_desert_axe_golem_sprites(target_size=80)
+        
+        self.image = self.sprites["idle_right"][0]
+        self.update_mask()
+        
+        self.health = 3
+        self.speed = 1.5
+        self.x_vel = -self.speed
+        self.direction = "left"
+        self.state = "walk"
+        
+        self.start_x = x
+        self.patrol_dist = patrol_dist
+        self.animation_count = 0
+        
+        self.hit = False
+        self.hit_timer = 0
+        self.shoot_cooldown = 150
+        self.action_timer = 0
+
+    def get_hitbox(self):
+        hitbox = pygame.Rect(0, 0, 54, 72)
+        hitbox.center = self.rect.center
+        return hitbox
+
+    def take_damage(self, damage, source_x):
+        if not self.hit:
+            self.health -= damage
+            self.hit = True
+            self.hit_timer = 30
+            self.state = "hit"
+            self.animation_count = 0
+            
+            knockback_dir = 1 if self.rect.centerx > source_x else -1
+            self.x_vel = knockback_dir * 4
+            self.y_vel = -3
+            self.fall_count = 0
+
+    def landed(self):
+        self.fall_count = 0
+        self.y_vel = 0
+        self.state = "walk"
+        self.x_vel = self.speed if self.direction == "right" else -self.speed
+
+    def hit_head(self):
+        self.y_vel = 0
+
+    def loop(self, fps, platforms, player=None, projectiles=None):
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
+        self.fall_count += 1
+        
+        if self.shoot_cooldown > 0:
+            self.shoot_cooldown -= 1
+            
+        if self.hit:
+            self.hit_timer -= 1
+            if self.hit_timer <= 0:
+                self.hit = False
+                
+        if not self.hit:
+            dist_x = player.rect.centerx - self.rect.centerx if player else 9999
+            dist_y = player.rect.centery - self.rect.centery if player else 9999
+            dist_to_player = math.hypot(dist_x, dist_y)
+            
+            if self.state == "throw":
+                self.x_vel = 0
+                self.action_timer -= 1
+                if self.action_timer == 20 and projectiles is not None:
+                    axe_x = self.rect.centerx + (30 if self.direction == "right" else -30)
+                    axe_y = self.rect.centery - 10
+                    proj = DesertAxeProjectile(axe_x, axe_y, self.direction)
+                    projectiles.append(proj)
+                if self.action_timer <= 0:
+                    self.state = "walk"
+                    self.shoot_cooldown = 150
+            else:
+                if dist_to_player < 400 and self.shoot_cooldown <= 0:
+                    self.state = "throw"
+                    self.action_timer = 40
+                    self.animation_count = 0
+                    self.direction = "right" if dist_x > 0 else "left"
+                else:
+                    if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
+                        self.direction = "right" if self.direction == "left" else "left"
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+                    elif self.rect.x < self.start_x - self.patrol_dist:
+                        self.direction = "right"
+                        self.x_vel = self.speed
+                    elif self.rect.x > self.start_x + self.patrol_dist:
+                        self.direction = "left"
+                        self.x_vel = -self.speed
+                        
+                    if self.x_vel == 0:
+                        self.direction = "right" if self.direction == "left" else "left"
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+
+        self.update_sprite()
+
+    def update_sprite(self):
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.state == "hit":
+            sprite_sheet = "hit"
+        elif self.state == "throw":
+            sprite_sheet = "melee"
+        else:
+            sprite_sheet = "idle"
+            
+        sprite_sheet_name = f"{sprite_sheet}_{self.direction}"
+        sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
+        
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
+        self.image = sprites[frame_idx]
+        
+        if self.hit and self.state != "death":
+            if (self.hit_timer // 3) % 2 == 0:
+                tinted = self.image.copy()
+                tinted.fill((255, 100, 100, 150), special_flags=pygame.BLEND_RGBA_MULT)
+                self.image = tinted
+                
+        self.update_mask()
+
+    def draw(self, win, offset_x):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+
+
+class DesertHammerGolemEnemy(Entity):
+    GRAVITY = 0.5
+    ANIMATION_DELAY = 12
+
+    def __init__(self, x, y, patrol_dist=200):
+        super().__init__(x, y, 120, 120)
+        self.assets_manager = AssetsManager()
+        self.sprites = self.assets_manager.load_desert_hammer_golem_sprites(target_size=120)
+        
+        self.image = self.sprites["idle_right"][0]
+        self.update_mask()
+        
+        self.health = 8
+        self.max_health = 8
+        self.speed = 1.2
+        self.x_vel = 0
+        self.direction = "left"
+        self.state = "idle"
+        
+        self.start_x = x
+        self.patrol_dist = patrol_dist
+        self.animation_count = 0
+        
+        self.hit = False
+        self.hit_timer = 0
+        self.slam_cooldown = 240
+        self.sandtrap_cooldown = 360
+        self.action_timer = 0
+
+    def get_hitbox(self):
+        hitbox = pygame.Rect(0, 0, 80, 100)
+        hitbox.center = self.rect.center
+        return hitbox
+
+    def take_damage(self, damage, source_x):
+        if not self.hit:
+            self.health -= damage
+            self.hit = True
+            self.hit_timer = 30
+            self.state = "hit"
+            self.animation_count = 0
+            
+            knockback_dir = 1 if self.rect.centerx > source_x else -1
+            self.x_vel = knockback_dir * 3
+            self.y_vel = -2
+            self.fall_count = 0
+
+    def landed(self):
+        self.fall_count = 0
+        self.y_vel = 0
+        self.state = "idle"
+        self.x_vel = 0
+
+    def hit_head(self):
+        self.y_vel = 0
+
+    def loop(self, fps, platforms, player=None, projectiles=None):
+        self.y_vel += self.GRAVITY
+        if self.y_vel > 12:
+            self.y_vel = 12
+        self.fall_count += 1
+        
+        if self.slam_cooldown > 0:
+            self.slam_cooldown -= 1
+        if self.sandtrap_cooldown > 0:
+            self.sandtrap_cooldown -= 1
+            
+        if self.hit:
+            self.hit_timer -= 1
+            if self.hit_timer <= 0:
+                self.hit = False
+                
+        if not self.hit:
+            dist_x = player.rect.centerx - self.rect.centerx if player else 9999
+            dist_y = player.rect.centery - self.rect.centery if player else 9999
+            dist_to_player = math.hypot(dist_x, dist_y)
+            
+            if player:
+                self.direction = "right" if dist_x > 0 else "left"
+                
+            if self.state == "slam":
+                self.x_vel = 0
+                self.action_timer -= 1
+                if self.action_timer == 20:
+                    if hasattr(player, "game_ref") and player.game_ref:
+                        player.game_ref.screenshake = 25
+                    if dist_to_player < 220:
+                        player.take_damage(2, self.rect.centerx)
+                        player.x_vel = (1 if player.rect.centerx > self.rect.centerx else -1) * 10
+                        player.y_vel = -6
+                if self.action_timer <= 0:
+                    self.state = "idle"
+                    self.slam_cooldown = 240
+                    
+            elif self.state == "sandtrap":
+                self.x_vel = 0
+                self.action_timer -= 1
+                if self.action_timer == 20 and projectiles is not None:
+                    trap_x = player.rect.centerx
+                    trap_y = player.rect.bottom
+                    trap = DesertSandTrap(trap_x, trap_y)
+                    projectiles.append(trap)
+                if self.action_timer <= 0:
+                    self.state = "idle"
+                    self.sandtrap_cooldown = 360
+            else:
+                if dist_to_player < 180 and self.slam_cooldown <= 0:
+                    self.state = "slam"
+                    self.action_timer = 45
+                    self.animation_count = 0
+                elif dist_to_player < 380 and self.sandtrap_cooldown <= 0:
+                    self.state = "sandtrap"
+                    self.action_timer = 40
+                    self.animation_count = 0
+                elif dist_to_player < 500:
+                    if self.y_vel <= self.GRAVITY and self.is_about_to_fall(platforms):
+                        self.x_vel = 0
+                        self.state = "idle"
+                    else:
+                        self.x_vel = self.speed if self.direction == "right" else -self.speed
+                        self.state = "walk"
+                else:
+                    self.x_vel = 0
+                    self.state = "idle"
+                    
+        self.update_sprite()
+
+    def update_sprite(self):
+        if self.health <= 0 or self.state == "death":
+            self.state = "death"
+            sprite_sheet = "death"
+        elif self.state == "hit":
+            sprite_sheet = "hit"
+        elif self.state in ["slam", "sandtrap"]:
+            sprite_sheet = "melee"
+        elif self.x_vel != 0:
+            sprite_sheet = "walk"
+        else:
+            sprite_sheet = "idle"
+            
+        sprite_sheet_name = f"{sprite_sheet}_{self.direction}"
+        sprites = self.sprites.get(sprite_sheet_name, self.sprites["idle_right"])
+        
+        if self.state == "death":
+            frame_idx = self.animation_count // self.ANIMATION_DELAY
+            if frame_idx >= len(sprites):
+                frame_idx = len(sprites) - 1
+                self.death_animation_finished = True
+            else:
+                self.death_animation_finished = False
+                self.animation_count += 1
+        else:
+            frame_idx = (self.animation_count // self.ANIMATION_DELAY) % len(sprites)
+            self.animation_count += 1
+            self.death_animation_finished = False
+            
+        self.image = sprites[frame_idx]
+        
+        if self.hit and self.state != "death":
+            if (self.hit_timer // 3) % 2 == 0:
+                tinted = self.image.copy()
+                tinted.fill((255, 100, 100, 150), special_flags=pygame.BLEND_RGBA_MULT)
+                self.image = tinted
+                
+        self.update_mask()
+
+    def draw(self, win, offset_x):
+        win.blit(self.image, (self.rect.x - offset_x, self.rect.y))
+

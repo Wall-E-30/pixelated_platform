@@ -19,14 +19,16 @@ class Game:
         self.assets_manager = AssetsManager()
         
         # Game State
-        # menu, story_intro, playing, game_over, victory
+        # menu, story_intro, playing, game_over, victory, level_complete_transition, dying
         self.state = "menu"
+        self.current_level = 1
+        self.theme = "forest"
         self.last_checkpoint = None  # Track the current active checkpoint spawn point
         self.reset_game()
 
-    def reset_game(self, checkpoint_spawn=None):
+    def reset_game(self, checkpoint_spawn=None, keep_score=False):
         # Reset level, player, camera
-        self.level = Level(self.WIDTH, self.HEIGHT)
+        self.level = Level(self.WIDTH, self.HEIGHT, theme=self.theme)
         
         if checkpoint_spawn:
             spawn_x, spawn_y = checkpoint_spawn
@@ -47,14 +49,15 @@ class Game:
             self.offset_x = 0
         self.offset_y = 0
         self.screenshake = 0
-        self.score = 0
+        if not keep_score:
+            self.score = 0
         self.projectiles = []  # For Goblin Spears and Golem Snares
         
         # Load heart HUD image directly
         self.ui_heart = pygame.transform.scale(self.assets_manager.load_platform_image("ui_heart.png"), (28, 28))
         
         # Load tiled background
-        self.bg_tile = self.assets_manager.load_background_tile(self.level.background_name)
+        self.bg_tile = self.assets_manager.load_background_tile(self.level.background_name, theme=self.theme)
         # Scale to match window height while preserving aspect ratio
         h_target = self.HEIGHT
         w_target = int(self.bg_tile.get_width() * (h_target / self.bg_tile.get_height()))
@@ -95,28 +98,47 @@ class Game:
                         self.player.attack()
                 elif self.state == "game_over":
                     if event.key == pygame.K_c:
-                        self.reset_game(self.last_checkpoint)
+                        # Keeps current level/theme, loads checkpoint spawn
+                        self.reset_game(self.last_checkpoint, keep_score=True)
                         self.state = "playing"
                     elif event.key == pygame.K_n:
                         self.last_checkpoint = None
+                        self.current_level = 1
+                        self.theme = "forest"
                         self.reset_game()
                         self.state = "playing"
                     elif event.key == pygame.K_m:
                         self.last_checkpoint = None
+                        self.current_level = 1
+                        self.theme = "forest"
                         self.reset_game()
                         self.state = "menu"
                 elif self.state == "victory":
                     if event.key == pygame.K_r:
                         self.last_checkpoint = None
+                        self.current_level = 1
+                        self.theme = "forest"
                         self.reset_game()
                         self.state = "playing"
                     elif event.key == pygame.K_m:
                         self.last_checkpoint = None
+                        self.current_level = 1
+                        self.theme = "forest"
                         self.reset_game()
                         self.state = "menu"
 
     def update(self):
-        if self.state not in ["playing", "dying"]:
+        if self.state not in ["playing", "dying", "level_complete_transition"]:
+            return
+            
+        if self.state == "level_complete_transition":
+            self.transition_timer -= 1
+            if self.transition_timer <= 0:
+                self.current_level = 2
+                self.theme = "desert"
+                self.last_checkpoint = None
+                self.reset_game(keep_score=True)
+                self.state = "playing"
             return
             
         if self.state == "playing":
@@ -202,7 +224,11 @@ class Game:
                     elif item.item_type == "chest":
                         self.score += 200
                         # Chest is the final source code; complete the level!
-                        self.state = "victory"
+                        if self.current_level == 1:
+                            self.state = "level_complete_transition"
+                            self.transition_timer = 180
+                        else:
+                            self.state = "victory"
                     
             # 7. Check Player Attack overlap with Enemies / Projectiles
             if self.player.attacking:
@@ -264,7 +290,11 @@ class Game:
                 
             # Check Victory Checkpoint
             if self.player.rect.x >= self.level.finish_x:
-                self.state = "victory"
+                if self.current_level == 1:
+                    self.state = "level_complete_transition"
+                    self.transition_timer = 180
+                else:
+                    self.state = "victory"
 
         else: # state is "dying"
             if getattr(self.player, "death_animation_finished", False):
@@ -321,8 +351,9 @@ class Game:
         lbl_health = font.render("HERO LIFE", True, (255, 255, 255))
         self.window.blit(lbl_health, (start_x, start_y - 24))
         
-        lbl_progress = font.render(f"PROGRESS {int(progress * 100)}%", True, (255, 255, 255))
-        self.window.blit(lbl_progress, (bar_x + 35, bar_y - 22))
+        level_name = "FOREST REALM" if self.theme == "forest" else "DESERT RUINS"
+        lbl_progress = font.render(f"{level_name} | PROGRESS {int(progress * 100)}%", True, (255, 255, 255))
+        self.window.blit(lbl_progress, (bar_x - 30, bar_y - 22))
 
         # 3. Score UI (Centered top)
         lbl_score = font.render(f"SCORE: {self.score:05d}", True, (255, 215, 0))
@@ -388,7 +419,7 @@ class Game:
         self.player.rect.y += shake_y
 
         # 9. Draw HUD overlays
-        if self.state in ["playing", "dying"]:
+        if self.state in ["playing", "dying", "level_complete_transition"]:
             self.draw_hud()
         
         # 10. State Screens
@@ -400,6 +431,8 @@ class Game:
             self.draw_game_over_screen()
         elif self.state == "victory":
             self.draw_victory_screen()
+        elif self.state == "level_complete_transition":
+            self.draw_level_complete_transition_screen()
 
         pygame.display.update()
 
@@ -491,7 +524,7 @@ class Game:
         font_normal = pygame.font.SysFont("Consolas", 20, bold=True)
         font_action = pygame.font.SysFont("Consolas", 22, bold=True)
         
-        lbl_msg = font_normal.render("You fell victim to the forest hazards...", True, (255, 100, 100))
+        lbl_msg = font_normal.render("You fell victim to the level's hazards...", True, (255, 100, 100))
         lbl_msg_rect = lbl_msg.get_rect(center=(self.WIDTH // 2, box_y + 90))
         self.window.blit(lbl_msg, lbl_msg_rect)
         
@@ -521,10 +554,10 @@ class Game:
         font_sub = pygame.font.SysFont("Consolas", 22, bold=True)
         
         lines = [
-            "Victory! You reached the Golden Gates",
-            "and restored balance to the Forest Realm.",
+            "Victory! You conquered all realms!",
+            "and restored balance to the Pixel Realm.",
             "",
-            "The Chronicle Forest is safe once more.",
+            "The Chronicles are safe once more.",
             "Thank you for playing!"
         ]
         
@@ -536,3 +569,21 @@ class Game:
         lbl_restart = font_sub.render("Press 'R' to Play Again or 'M' for Menu", True, (0, 255, 120))
         lbl_restart_rect = lbl_restart.get_rect(center=(self.WIDTH // 2, box_y + 290))
         self.window.blit(lbl_restart, lbl_restart_rect)
+
+    def draw_level_complete_transition_screen(self):
+        box_x, box_y = self.draw_overlay_box(650, 320, "STAGE CLEAR")
+        
+        font_normal = pygame.font.SysFont("Courier New", 18, bold=True)
+        font_sub = pygame.font.SysFont("Consolas", 20, bold=True)
+        
+        lines = [
+            "Forest Realm Cleared!",
+            "Score carried forward: " + str(self.score),
+            "",
+            "Preparing to enter the Scorched Desert...",
+        ]
+        
+        for i, line in enumerate(lines):
+            color = (255, 220, 50) if i == 0 else (200, 240, 250)
+            rendered = font_normal.render(line, True, color)
+            self.window.blit(rendered, (box_x + 60, box_y + 95 + i * 28))

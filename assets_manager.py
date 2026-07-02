@@ -149,6 +149,61 @@ class AssetsManager:
             ]
         }
         
+        # Bounding boxes for Desert Automaton (from desert_enemy_small.png)
+        self.DESERT_AUTOMATON_BOXES = {
+            "idle": [
+                (123, 186, 135, 117),
+                (338, 186, 136, 117),
+                (550, 186, 142, 117),
+                (760, 186, 140, 116)
+            ],
+            "walk": [
+                (123, 186, 135, 117),
+                (338, 186, 136, 117),
+                (550, 186, 142, 117),
+                (760, 186, 140, 116)
+            ],
+            "melee": [
+                (114, 369, 164, 150),
+                (315, 372, 201, 148),
+                (541, 376, 193, 144),
+                (761, 403, 149, 117)
+            ],
+            "hit": [
+                (105, 612, 141, 119)
+            ],
+            "death": [
+                (105, 612, 141, 119),
+                (320, 601, 159, 131),
+                (517, 640, 171, 91),
+                (760, 660, 182, 70)
+            ],
+            "burrow": [
+                (104, 824, 147, 120),
+                (297, 808, 191, 138),
+                (524, 819, 192, 127),
+                (897, 795, 108, 112)
+            ]
+        }
+
+        # Bounding boxes for Desert Axe Golem (from desert_enemy_1.png)
+        self.DESERT_AXE_GOLEM_BOXES = {
+            "idle": [(94, 184, 240, 225)],
+            "walk": [(94, 184, 240, 225)],
+            "melee": [(416, 187, 260, 223)],
+            "hit": [(730, 216, 144, 196)],
+            "death": [(730, 216, 144, 196)]
+        }
+
+        # Bounding boxes for Desert Hammer Golem (from desert_enemy_2.png)
+        self.DESERT_HAMMER_GOLEM_BOXES = {
+            "idle": [(71, 167, 263, 243)],
+            "walk": [(379, 134, 225, 276)],
+            "melee": [(540, 139, 144, 272)],
+            "hit": [(715, 191, 289, 221)],
+            "death": [(715, 191, 289, 221)]
+        }
+        
         # Mapping from filename to sheet, coordinates, and original size
         self.SHEET_MAPPINGS = {
             # Terrain/Platforms (from Terrain/forest.png)
@@ -159,12 +214,21 @@ class AssetsManager:
             "platform_mossy_stone.png": ("Terrain/forest.png", (1408, 42, 141, 146), (166, 68)),
             "platform_mossy_rock.png": ("Terrain/forest.png", (1120, 1284, 277, 229), (172, 91)),
             
+            # Terrain/Platforms (from Terrain/desert.png)
+            "platform_sand_top.png": ("Terrain/desert.png", (75, 72, 178, 179), (233, 92)),
+            "platform_sand_inner.png": ("Terrain/desert.png", (75, 292, 179, 181), (233, 92)),
+            "platform_desert_stone.png": ("Terrain/desert.png", (1429, 74, 184, 178), (158, 64)),
+            "platform_desert_wood.png": ("Terrain/desert.png", (421, 658, 193, 206), (148, 59)),
+            "platform_desert_bridge.png": ("Terrain/desert.png", (2276, 744, 229, 116), (191, 84)),
+            
             # Hazards
             "hazard_spikes.png": ("Terrain/forest.png", (65, 1296, 222, 199), (132, 62)),
+            "hazard_cactus.png": ("Terrain/desert.png", (1538, 915, 51, 177), (132, 62)),
             
             # Interactive Objects
             "interactive_jump_pad.png": ("Terrain/forest.png", (1490, 1331, 111, 158), (129, 116)),
             "interactive_mushroom.png": ("Terrain/forest.png", (1643, 1372, 104, 117), (141, 123)),
+            "interactive_desert_spring.png": ("Terrain/desert.png", (1468, 595, 63, 44), (129, 116)),
             
             # Decorations
             "decor_pine_trees.png": ("Terrain/forest.png", (646, 597, 386, 617), (117, 187)),
@@ -172,11 +236,16 @@ class AssetsManager:
             "decor_leafy_tree.png": ("Terrain/forest.png", (1655, 1033, 170, 181), (51, 55)),
             "decor_fallen_log.png": ("Terrain/forest.png", (1421, 693, 368, 204), (111, 62)),
             "decor_stump_logs.png": ("Terrain/forest.png", (1842, 686, 282, 211), (85, 64)),
+            "decor_cactus_1.png": ("Terrain/desert.png", (1469, 916, 52, 180), (117, 187)),
+            "decor_cactus_2.png": ("Terrain/desert.png", (1605, 919, 55, 177), (180, 197)),
+            "decor_desert_ruin_1.png": ("Terrain/desert.png", (845, 24, 180, 228), (117, 187)),
+            "decor_desert_ruin_2.png": ("Terrain/desert.png", (1034, 25, 180, 227), (180, 197)),
             
             # Collectibles (from Items/collectibles.png)
             "item_coin.png": ("Items/collectibles.png", (30, 26, 102, 112), (105, 105)),
             "ui_heart.png": ("Items/collectibles.png", (856, 169, 136, 123), (88, 80)),
         }
+
 
 
 
@@ -318,23 +387,87 @@ class AssetsManager:
             
         return animations
 
-    def load_background_tile(self, name):
+    def load_desert_automaton_sprites(self, target_size=64):
+        """Extracts and returns Desert Automaton animations from desert_enemy_small.png."""
+        sheet_path = join("assets", "Enemies", "desert_enemy_small.png")
+        sheet = self.load_image(sheet_path)
+        
+        animations = {}
+        for state, boxes in self.DESERT_AUTOMATON_BOXES.items():
+            right_sprites = []
+            left_sprites = []
+            for box in boxes:
+                sprite = self.extract_and_scale_sprite(sheet, box, target_size)
+                right_sprites.append(sprite)
+                left_sprites.append(pygame.transform.flip(sprite, True, False))
+            animations[f"{state}_right"] = right_sprites
+            animations[f"{state}_left"] = left_sprites
+            
+        return animations
+
+    def load_desert_axe_golem_sprites(self, target_size=96):
+        """Extracts and returns Desert Axe Golem animations from desert_enemy_1.png."""
+        sheet_path = join("assets", "Enemies", "desert_enemy_1.png")
+        sheet = self.load_image(sheet_path)
+        
+        animations = {}
+        for state, boxes in self.DESERT_AXE_GOLEM_BOXES.items():
+            right_sprites = []
+            left_sprites = []
+            for box in boxes:
+                sprite = self.extract_and_scale_sprite(sheet, box, target_size)
+                right_sprites.append(sprite)
+                left_sprites.append(pygame.transform.flip(sprite, True, False))
+            animations[f"{state}_right"] = right_sprites
+            animations[f"{state}_left"] = left_sprites
+            
+        return animations
+
+    def load_desert_hammer_golem_sprites(self, target_size=128):
+        """Extracts and returns Desert Hammer Golem animations from desert_enemy_2.png."""
+        sheet_path = join("assets", "Enemies", "desert_enemy_2.png")
+        sheet = self.load_image(sheet_path)
+        
+        animations = {}
+        for state, boxes in self.DESERT_HAMMER_GOLEM_BOXES.items():
+            right_sprites = []
+            left_sprites = []
+            for box in boxes:
+                sprite = self.extract_and_scale_sprite(sheet, box, target_size)
+                right_sprites.append(sprite)
+                left_sprites.append(pygame.transform.flip(sprite, True, False))
+            animations[f"{state}_right"] = right_sprites
+            animations[f"{state}_left"] = left_sprites
+            
+        return animations
+
+    def load_background_tile(self, name, theme="forest"):
         """Loads a background tile from assets/Background/ or assets/Items/ with dimming."""
         path_bg = join("assets", "Background", name)
         path_items = join("assets", "Items", name)
         path = path_bg if os.path.exists(path_bg) else path_items
         img = self.load_image(path)
         
-        # If background.jpg, crop only the forest portion (left 1/3 of the image)
+        # If background.jpg, crop only the appropriate portion based on theme
         if name == "background.jpg":
             w, h = img.get_size()
-            forest_width = w // 3
-            img = img.subsurface(pygame.Rect(0, 0, forest_width, h))
+            slice_width = w // 3
+            if theme == "desert":
+                img = img.subsurface(pygame.Rect(slice_width, 0, slice_width, h))
+            elif theme == "snow":
+                img = img.subsurface(pygame.Rect(2 * slice_width, 0, slice_width, h))
+            else:
+                img = img.subsurface(pygame.Rect(0, 0, slice_width, h))
             
         # Apply a darkening filter to the background image so it sits back and platforms pop!
         dimmed = img.copy()
-        dimmed.fill((85, 85, 105, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        if theme == "desert":
+            # Warm sandy tone dimming for desert theme
+            dimmed.fill((110, 95, 75, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        else:
+            dimmed.fill((85, 85, 105, 255), special_flags=pygame.BLEND_RGBA_MULT)
         return dimmed
+
 
     def load_mapped_sprite(self, name):
         """Checks SHEET_MAPPINGS, crops and scales from unified sheets, caching the result."""
