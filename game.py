@@ -189,7 +189,7 @@ class Game:
             
         # Update projectiles and traps
         for proj in self.projectiles:
-            if type(proj).__name__ == "RootSnare":
+            if type(proj).__name__ in ["RootSnare", "DesertSandTrap"]:
                 proj.loop(self.player)
             else:
                 proj.loop(self.level.platforms)
@@ -244,9 +244,9 @@ class Game:
                             if enemy.health <= 0:
                                 self.score += 50
                                 
-                    # Deflect spears
+                    # Deflect projectiles
                     for proj in self.projectiles:
-                        if type(proj).__name__ == "SpearProjectile":
+                        if type(proj).__name__ in ["SpearProjectile", "DesertAxeProjectile"]:
                             if attack_rect.colliderect(proj.rect):
                                 proj.alive = False
                                 self.score += 25 # Deflection reward!
@@ -261,9 +261,9 @@ class Game:
                         if self.player.get_hitbox().colliderect(enemy.get_hitbox()):
                             self.player.take_damage(1, enemy.rect.centerx)
                         
-                # Check contact with projectiles (Spears)
+                # Check contact with projectiles (Spears, Axes)
                 for proj in self.projectiles:
-                    if type(proj).__name__ == "SpearProjectile":
+                    if type(proj).__name__ in ["SpearProjectile", "DesertAxeProjectile"]:
                         if pygame.sprite.collide_mask(self.player, proj):
                             self.player.take_damage(1, proj.rect.centerx)
                             proj.alive = False
