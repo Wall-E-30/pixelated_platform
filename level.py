@@ -93,8 +93,9 @@ class Level:
             
         # 2. Foreground decorations (drawn behind entities)
         for x in range(750, total_width - 500, 1200):
-            self.decorations.append(Decoration(x, None, asset_log_1, parallax_factor=1.0, align_bottom=ground_y + 20))
-            self.decorations.append(Decoration(x + 250, None, asset_log_2, parallax_factor=1.0, align_bottom=ground_y + 10))
+            p_factor = 0.6 if self.theme == "desert" else 1.0
+            self.decorations.append(Decoration(x, None, asset_log_1, parallax_factor=p_factor, align_bottom=ground_y + 20))
+            self.decorations.append(Decoration(x + 250, None, asset_log_2, parallax_factor=p_factor, align_bottom=ground_y + 10))
             
         # 3. Start Chunk (0 to 500)
         self.platforms.extend([

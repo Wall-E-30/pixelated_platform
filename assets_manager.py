@@ -484,7 +484,21 @@ class AssetsManager:
             sub_rect = pygame.Rect(x, y, w, h)
             sub_surface = sheet.subsurface(sub_rect)
             
-            scaled = pygame.transform.scale(sub_surface, target_size)
+            # Check if this asset should be horizontally tiled instead of stretched
+            t_w, t_h = target_size
+            if name in ["platform_sand_top.png", "platform_sand_inner.png", "platform_desert_stone.png", "platform_desert_wood.png"]:
+                # Tile 2x horizontally to prevent the texture from being stretched out of aspect ratio
+                tile_w = t_w // 2
+                tile_h = t_h
+                scaled_tile = pygame.transform.scale(sub_surface, (tile_w, tile_h))
+                scaled = pygame.Surface(target_size, pygame.SRCALPHA, 32)
+                scaled.blit(scaled_tile, (0, 0))
+                scaled.blit(scaled_tile, (tile_w, 0))
+                if tile_w * 2 < t_w:
+                    scaled.blit(scaled_tile, (tile_w * 2, 0))
+            else:
+                scaled = pygame.transform.scale(sub_surface, target_size)
+                
             self.image_cache[cache_key] = scaled
             return scaled
             
@@ -507,15 +521,16 @@ class AssetsManager:
         return self.load_image(path)
 
     def load_decoration_image(self, name):
-        """Loads a decoration image with desaturation."""
+        """Loads a decoration image with desaturation and transparency."""
         img = self.load_mapped_sprite(name)
         if img is None:
             path = join("assets", "Items", name)
             img = self.load_image(path)
             
-        # Dim decorations so players do not confuse them with collidable platforms
+        # Dim and darken decorations so players do not confuse them with collidable platforms
         dimmed = img.copy()
-        dimmed.fill((135, 135, 155, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        dimmed.fill((110, 110, 120, 255), special_flags=pygame.BLEND_RGBA_MULT)
+        dimmed.set_alpha(110) # Set alpha to blend with background
         return dimmed
 
     def load_projectile_image(self, name):
